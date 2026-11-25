@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Google sign-in') }} · Library of Tanglesprings{% endblock %}
+{% block content %}
+<section class="max-w-md mx-auto bg-shelf-card border border-shelf-border rounded-xl p-6 space-y-4">
+    <h1 class="text-xl font-bold">{{ _('Google sign-in') }}</h1>
+    {% if error %}<p role="alert" class="text-sm text-shelf-error">{{ _(error) }}</p>{% endif %}
+    {% if google_email %}
+    <p class="text-sm text-shelf-muted">{{ _('Linked Google account') }} <strong class="block break-all text-shelf-text">{{ google_email }}</strong></p>
+    {% else %}
+    <p class="text-sm text-shelf-muted">{{ _('Connect Google to your existing library account. Confirm your library password, then choose your Google account.') }}</p>
+    {% endif %}
+    <form method="post" action="/account/google/{{ 'unlink' if google_email else 'link' }}" class="space-y-4">
+        <input type="hidden" name="_csrf" value="{{ request.cookies.get('csrf_token', '') }}">
+        <div>
+            <label for="google-library-password" class="block text-sm font-medium text-shelf-muted mb-1">{{ _('Current library password') }}</label>
+            <input type="password" id="google-library-password" name="password" required autocomplete="current-password"
+                   class="w-full bg-shelf-bg border border-shelf-border rounded-lg px-3 py-2 text-shelf-text focus:outline-hidden focus:border-shelf-accent focus:ring-1 focus:ring-shelf-accent">
+        </div>
+        <button type="submit" class="bg-shelf-accent hover:bg-shelf-accent2 text-white font-medium rounded-lg px-4 py-2">
+            {{ _('Unlink Google') if google_email else _('Link Google account') }}
+        </button>
+    </form>
+</section>
+{% endblock %}

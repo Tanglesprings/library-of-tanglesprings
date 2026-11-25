@@ -14,6 +14,7 @@ from app.auth import (
 from app import features, i18n
 from app.config import get_client_ip
 from app.database import get_db, set_setting
+from app.services.google_signin import clear_flow_cookie
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,10 @@ async def login_page(request: Request):
     if user:
         return RedirectResponse(url="/", status_code=303)
     templates = request.app.state.templates
-    return templates.TemplateResponse(request, "login.html", {"error": None})
+    error = None
+    if request.query_params.get("google") == "failed":
+        error = "Google sign-in didn’t finish. Sign in with your library password to link your Google account."
+    return templates.TemplateResponse(request, "login.html", {"error": error})
 
 
 @router.post("/login")
@@ -67,6 +71,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     token = create_token(user["id"], user["username"], user["role"], user["display_name"], user["token_version"])
     response = RedirectResponse(url="/", status_code=303)
     set_auth_cookie(request, response, token)
+    clear_flow_cookie(response)
     logger.info("User '%s' logged in from %s", username, get_client_ip(request))
     return response
 
@@ -75,6 +80,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
 async def logout():
     response = RedirectResponse(url="/login", status_code=303)
     clear_auth_cookie(response)
+    clear_flow_cookie(response)
     return response
 
 

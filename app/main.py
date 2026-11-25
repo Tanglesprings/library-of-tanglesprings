@@ -26,7 +26,7 @@ logging.basicConfig(
 # emits nothing at warning or error, so raising its level drops that line and
 # nothing else. The filter stays as defence in depth: it strips userinfo and
 # blanks credential query values on anything httpx does still emit.
-from app.log_handler import RedactQueryFilter, SQLiteHandler
+from app.log_handler import OmitAccessQuery, RedactQueryFilter, SQLiteHandler
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpx").addFilter(RedactQueryFilter())
 
@@ -61,10 +61,13 @@ from app.services import audnexus
 from app.services.browse_counts import source_label
 from app.database import init_db, get_db
 from app.routers import pages, items, item_copies, items_covers, cover_review, cover_review_actions, items_csv, items_catalog, locations, location_order, platforms, settings, sync, checkouts, valuation, hardcover, store, series, share, tags, intake, archive, shelf_fill, romm, komga, periodicals, music, related_media, trash, labels, audits, duplicates, upcoming, api_v1
-from app.routers import auth_routes
+from app.routers import auth_routes, google_auth
 from app.routers import section_printer
+from app.services import google_signin
 # Aliased: `api_tokens` inside the middlewares is the service module.
 from app.routers import api_tokens as api_token_routes
+
+logging.getLogger("uvicorn.access").addFilter(OmitAccessQuery(google_signin.CALLBACK_PATH))
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -74,7 +77,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Browsers ignore HSTS over http://, and behind a trusted TLS proxy the scheme is already https.
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers["X-XSS-Protection"] = "1; mode=block"
         # No 'unsafe-inline', no CDN hosts, and no 'unsafe-eval': all JS is
         # served from /static and Alpine is the CSP build (no new Function) —
@@ -100,7 +103,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-_SKIP_AUTH_PATHS = frozenset({"/login", "/setup", "/logout", "/health", "/api/health", "/api/label-printer", "/source", "/sw.js"})
+_SKIP_AUTH_PATHS = frozenset({
+    "/login", "/setup", "/logout", "/health", "/api/health", "/api/label-printer", "/source", "/sw.js",
+    google_auth.START_PATH, google_signin.CALLBACK_PATH,
+})
 _SKIP_AUTH_PREFIXES = ("/static/", "/covers/", "/share/")
 
 
@@ -277,7 +283,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Sliding expiry: refresh token if past half-life, preserving CSRF token
-        if user:
+        if user and not any(cookie.startswith("access_token=") for cookie in response.headers.getlist("set-cookie")):
             fresh_token = should_refresh_token(request, user)
             if fresh_token:
                 set_auth_cookie(request, response, fresh_token, request.cookies.get("csrf_token"))
@@ -306,7 +312,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Only rate-limit API and auth endpoints
         path = request.url.path
-        if not (path.startswith(("/api/", "/share/")) or path in ("/login", "/setup")):
+        if not (path.startswith(("/api/", "/share/", "/auth/google/", "/account/google"))
+                or path in ("/login", "/setup")):
             return await call_next(request)
 
         ip = get_client_ip(request)
@@ -761,6 +768,7 @@ templates.env.globals["feature_on"] = feature_enabled
 # The toggle route re-renders reading_status.html with only `item` in context,
 # so the status words must come from a global.
 templates.env.globals["status_labels"] = status_labels
+templates.env.globals["google_signin_enabled"] = google_signin.enabled
 
 # Wrap TemplateResponse to auto-inject 'user' from request.state
 _original_template_response = templates.TemplateResponse
@@ -858,6 +866,7 @@ async def corresponding_source():
 
 # Routers
 app.include_router(auth_routes.router)
+app.include_router(google_auth.router)
 app.include_router(pages.router)
 # Before items.router: tags.router owns the static POST /api/items/bulk-tags,
 # which items.py's POST /items/{item_id} would otherwise match first.

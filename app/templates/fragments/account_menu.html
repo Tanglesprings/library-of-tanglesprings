@@ -28,6 +28,12 @@
                     <span class="block text-xs text-shelf-muted">{{ _('Profile and password') }}</span>
                 </span>
             </button>
+            {% if google_signin_enabled(request) %}
+            <a href="/account/google" role="menuitem"
+               class="block px-4 py-2.5 text-sm text-shelf-muted hover:text-white hover:bg-shelf-hover transition-colors">
+                {{ _('Google sign-in') }}
+            </a>
+            {% endif %}
         </div>
 
         {# Tabs the registry routes here rather than to the tab row — see

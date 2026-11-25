@@ -418,9 +418,19 @@ MIGRATIONS: Sequence[tuple[int, str, str]] = (
      " labels TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued'"
      " CHECK(status IN ('queued', 'sending', 'submitted', 'failed')),"
      " created_at TEXT NOT NULL DEFAULT (datetime('now')), claimed_at TEXT, spool_id TEXT)"),
+    (10007, "Add linked Google identities",
+     "CREATE TABLE IF NOT EXISTS google_identities ("
+     " user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
+     " subject TEXT NOT NULL UNIQUE, email TEXT NOT NULL)"),
 )
 
 MIGRATION_TABLES = """
+CREATE TABLE IF NOT EXISTS google_identities (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL UNIQUE,
+    email   TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS section_label_jobs (
     id           TEXT PRIMARY KEY,
     requested_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

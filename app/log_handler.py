@@ -50,6 +50,22 @@ class SQLiteHandler(logging.Handler):
             pass
 
 
+class OmitAccessQuery(logging.Filter):
+    """Keep credentials in a sensitive callback query out of Uvicorn's log."""
+
+    def __init__(self, path: str):
+        super().__init__()
+        self.path = path
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) == 5:
+            client, method, target, version, status = args
+            if isinstance(target, str) and target.partition("?")[0].rstrip("/") == self.path:
+                record.args = (client, method, self.path, version, status)
+        return True
+
+
 # Query-string keys whose *value* must never reach a log line. Matched
 # case-insensitively. TMDb v3 authentication requires the key in the query
 # string, so the transport cannot avoid it — this filter is what keeps it out

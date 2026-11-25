@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale()|replace('_', '-') }}" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _(label) }} · Library of Tanglesprings</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/brand/tanglesprings.css">
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+    <a href="{{ target }}" class="bg-shelf-accent hover:bg-shelf-accent2 text-white font-medium rounded-lg px-4 py-2">{{ _(label) }}</a>
+</body>
+</html>

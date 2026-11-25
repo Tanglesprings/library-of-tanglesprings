@@ -627,6 +627,9 @@ def test_every_top_level_page_is_reachable_from_the_nav():
     EXEMPT = {
         "/": "the brand link in base.html is the Home affordance",
         "/login": "pre-auth",
+        "/account/google": "reached from the account menu when Google is configured",
+        "/auth/google/start": "reached from the sign-in page when Google is configured",
+        "/auth/google/callback": "Google OAuth return endpoint",
         "/setup": "pre-auth, first run only",
         "/health": "machine endpoint, not a page",
         "/sw.js": "service worker asset",

@@ -5,6 +5,9 @@ services:
     image: tanglesprings-library:${LIBRARY_REVISION:-local}
     build: .
     restart: unless-stopped
+    env_file:
+      - path: /opt/tanglesprings-library/google.env
+        required: false
     environment:
       SHELF_TLS: 'off'
       SHELF_TRUST_PROXY: 172.29.57.2

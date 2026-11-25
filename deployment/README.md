@@ -27,3 +27,17 @@ The library runs a second launch agent on ww-node using the existing Recovered G
 4. Enable host backups and protect them as guest data. Back up the entire `library-data` volume, which includes the SQLite database, covers, and locally generated keys. Use a consistent volume snapshot taken with the library stopped, or use the app’s SQLite backup plus a protected copy of the remaining files. Restore to a separate volume to verify it. The portable catalog archive is for collection transfer. Use a full SQLite backup for guest contact details and copy-specific loan records.
 
 For a manual deploy, run `LIBRARY_REVISION=<commit> LIBRARY_SOURCE_URL=<exact-source-url> docker compose -f compose.production.yml up -d --build --wait` from the matching checkout on the host. Compose retains the same project and data volume across releases. For a failed database change, pair any code rollback with a compatible pre-deploy backup.
+
+## Google sign-in
+
+In [Google Auth Platform](https://console.cloud.google.com/auth/clients), create a dedicated **Web application** client named **Library of Tanglesprings** and register `https://library.tanglesprings.institute/auth/google/callback` as an authorized redirect URI. Use an Internal audience for accounts in the owning Google Workspace. For an External app in Testing, add approved accounts as test users. The library requests `openid` and `email`.
+
+On the production host, create `/opt/tanglesprings-library/google.env` with permissions `0600`, owned by the deployment account. Keep it outside the source checkout and release directories.
+
+```dotenv
+GOOGLE_CLIENT_ID=<web client ID>
+GOOGLE_CLIENT_SECRET=<web client secret>
+GOOGLE_REDIRECT_URI=https://library.tanglesprings.institute/auth/google/callback
+```
+
+Recreate the library service with the production Compose configuration. Open the library with your current username and password, then choose **Account menu → Google sign-in → Link Google account**. Confirm your library password and choose your Google account. The library saves Google's verified account identifier against the existing user and uses that user's current permissions on future sign-ins. Username and password remain available. To switch Google accounts, unlink the old account before linking the new one.

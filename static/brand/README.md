@@ -19,3 +19,7 @@ The built-in ImageGen tool created these transparent PNGs using the Dept. of Rec
 [stamp PNG](library-stamp.png)
 
 > Use case: logo-brand. Generate a new compact library ownership stamp for spine labels and profile avatars, as part of the same design family as the supplied Dept. of Recovered Garments image, which is a typographic style reference. Exact text “LIBRARY” then “of” then “TANGLESPRINGS”, stacked in a nearly square shape. Spell T A N G L E S P R I N G S verbatim as one word. Very bold condensed archival grotesk, horizontal rules above and below, open sides, confidently legible. One deep dark oxblood ink on genuinely transparent background. Crisp flat printing shapes, no simulated worn-paper texture, no drop shadows, illustration, background, date, label mockup, or added text. Compact shape centered with 10% safe padding.
+
+## Google sign-in
+
+`google-sign-in.png` is the light rectangular web button from [Google's official sign-in assets](https://developers.google.com/identity/branding-guidelines).

@@ -38,6 +38,13 @@
                 {{ _('Sign In') }}
             </button>
         </form>
+        {% if google_signin_enabled(request) %}
+        <div class="text-center mt-3">
+            <a href="/auth/google/start" class="inline-block rounded-lg focus-visible:ring-2 focus-visible:ring-shelf-accent">
+                <img src="/static/brand/google-sign-in.png" width="180" height="40" alt="{{ _('Sign in with Google') }}">
+            </a>
+        </div>
+        {% endif %}
         <footer class="library-footer"><a href="/source">Source code</a></footer>
     </div>
 </body>
