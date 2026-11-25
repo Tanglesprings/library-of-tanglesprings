@@ -20,7 +20,9 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 3
-    networks: [library-net]
+    networks:
+      library-net:
+        ipv4_address: 172.29.57.3
 
   proxy:
     image: caddy:2.11.9-alpine
