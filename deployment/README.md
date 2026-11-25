@@ -15,7 +15,7 @@ Open `https://localhost:18889/setup` and accept the local certificate for the pi
 
 Open **Sections** from the Circulation Desk to rename a section, view its titles, or choose **Move titles here** and select a batch. **Scan into section** starts Move mode with that destination selected. Use a copy label when a title has multiple physical copies.
 
-Choose **Print label** beside a section or **Print section labels** to build a batch. **Print on DYMO** queues bold black divider labels for the LabelWriter 450 Turbo on ww-node using the roll configured on that Mac. **Print locally** opens the browser print dialog with adjustable paper dimensions.
+Choose **Print label** beside a section or **Print section labels** to build a batch. **Print on DYMO** queues bold black divider labels for the LabelWriter 450 Turbo on ww-node using the roll configured on that Mac. The worker reports its stock dimensions so a new preview starts with the same size. **Print locally** opens the browser print dialog with adjustable paper dimensions.
 
 The library runs a second launch agent on ww-node using the existing Recovered Garments worker executable, a separate configuration directory, and a library-only pairing key. The library stores a SHA-256 digest of that key in `section_dymo_digest`. The Mac checks `/api/label-printer` over HTTPS and submits stock-sized PDFs to CUPS. A submitted job reports its CUPS ID. If delivery is unconfirmed, check the queue on ww-node before submitting a new job.
 

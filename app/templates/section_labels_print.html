@@ -19,7 +19,7 @@
             <input type="hidden" name="labels" value="{{ label_names | tojson | forceescape }}">
             <button type="submit">Print on DYMO</button>
         </form>
-        <p>{% if printer_online %}ww-node is online.{% else %}The job will queue until ww-node is online.{% endif %} Direct printing uses the label roll configured on ww-node.</p>
+        <p>DYMO roll · {{ '%g'|format(printer_width) }} × {{ '%g'|format(printer_height) }} mm. {% if printer_online %}ww-node is online.{% else %}The job will queue until ww-node is online.{% endif %}</p>
         {% endif %}
         <button type="button" data-print-page>Print locally</button>
         <a href="/labels/sections">New labels</a>

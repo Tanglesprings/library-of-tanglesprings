@@ -48,7 +48,7 @@ def printer_worker(
             spool_id = message.spoolId if isinstance(message, Submitted) else None
             done = section_printing.finish(db, str(message.id), message.type, spool_id)
             return Response(status_code=204 if done else 409)
-        job = section_printing.claim(db)
+        job = section_printing.claim(db, message.widthMm, message.heightMm)
 
     if job is None:
         return Response(status_code=204)

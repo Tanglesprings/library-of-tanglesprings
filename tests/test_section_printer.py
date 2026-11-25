@@ -40,3 +40,24 @@ def test_section_links_select_the_existing_destination(admin_client, db):
     scan = admin_client.get(f"/scan?mode=move&move_to={section}").text
     assert 'data-seed-mode="move"' in scan and f'data-seed-location="{section}"' in scan
     assert 'checked' in admin_client.get(f"/labels/sections?location_id={section}").text
+
+
+def test_section_preview_tracks_the_stock_reported_by_the_worker(admin_client, client, db):
+    key = "b" * 43
+    set_setting(db, WORKER_DIGEST, hashlib.sha256(key.encode()).hexdigest())
+    db.commit()
+    claim = {"type": "claim", "queue": "DYMO_LabelWriter_450_Turbo", "widthMm": 27.686, "heightMm": 88.9}
+    auth = {"Authorization": f"Bearer {key}"}
+    assert client.post("/api/label-printer", json=claim, headers=auth).status_code == 204
+    page = admin_client.get("/labels/sections").text
+    assert 'name="width" value="88.9"' in page
+    assert 'name="height" value="27.686"' in page
+
+    claim.update(widthMm=57.15, heightMm=31.75)
+    assert client.post("/api/label-printer", json=claim, headers=auth).status_code == 204
+    page = admin_client.get("/labels/sections").text
+    assert 'name="width" value="57.15"' in page
+    assert 'name="height" value="31.75"' in page
+    preview = admin_client.post("/labels/sections", data={"section_names": "Mystery"}).text
+    assert "size: 57.15mm 31.75mm" in preview
+    assert "57.15 × 31.75 mm" in preview

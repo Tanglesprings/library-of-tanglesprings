@@ -9,7 +9,20 @@ from app.database import get_setting
 
 WORKER_DIGEST = "section_dymo_digest"
 WORKER_SEEN = "section_dymo_seen"
+WORKER_STOCK = "section_dymo_stock"
 QUEUE = "DYMO_LabelWriter_450_Turbo"
+DEFAULT_LABEL_SIZE = (89, 28)
+
+
+def preview_dimensions(db) -> tuple[float, float]:
+    """Show the worker's stock with its long edge horizontal in the browser."""
+    try:
+        width, height = map(float, get_setting(db, WORKER_STOCK).split("x"))
+    except ValueError:
+        return DEFAULT_LABEL_SIZE
+    if not (25 <= width <= 160 and 25 <= height <= 160):
+        return DEFAULT_LABEL_SIZE
+    return max(width, height), min(width, height)
 
 
 def valid_labels(labels):
@@ -36,12 +49,17 @@ def enqueue(db, job_id: str, user_id: int, names: list[str]) -> bool:
     ).fetchone() is not None
 
 
-def claim(db):
+def claim(db, width_mm: float, height_mm: float):
     # One UPDATE owns selection and claim so concurrent workers never share a job.
     db.execute(
         "INSERT INTO settings (key, value) VALUES (?, datetime('now')) "
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value "
         "WHERE settings.value < datetime('now', '-20 seconds')", (WORKER_SEEN,),
+    )
+    db.execute(
+        "INSERT INTO settings (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value "
+        "WHERE settings.value <> excluded.value", (WORKER_STOCK, f"{width_mm:g}x{height_mm:g}"),
     )
     return db.execute(
         "UPDATE section_label_jobs SET status = 'sending', claimed_at = datetime('now') "

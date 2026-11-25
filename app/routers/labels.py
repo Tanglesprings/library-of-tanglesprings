@@ -68,8 +68,10 @@ async def labels_page(
 async def section_labels(request: Request, location_id: int | None = None, _=Depends(require_role("editor"))):
     with get_db() as db:
         locations = location_svc.location_tree(db)
+        width, height = section_printing.preview_dimensions(db)
     return request.app.state.templates.TemplateResponse(
-        request, "section_labels.html", {"locations": locations, "selected": [location_id]},
+        request, "section_labels.html",
+        {"locations": locations, "selected": [location_id], "width": width, "height": height},
     )
 
 
@@ -78,17 +80,20 @@ async def section_labels_preview(
     request: Request,
     location_ids: list[int] | None = Form(None),
     section_names: str = Form("", max_length=12000),
-    width: float = Form(89, ge=15, le=210),
-    height: float = Form(28, ge=10, le=159),
+    width: float | None = Form(None, ge=15, le=210),
+    height: float | None = Form(None, ge=10, le=160),
     _=Depends(require_role("editor")),
 ):
     with get_db() as db:
         locations = location_svc.location_tree(db)
         printer_paired = bool(get_setting(db, section_printing.WORKER_DIGEST))
+        printer_width, printer_height = section_printing.preview_dimensions(db)
         printer_online = bool(db.execute(
             "SELECT 1 FROM settings WHERE key = ? AND value >= datetime('now', '-45 seconds')",
             (section_printing.WORKER_SEEN,),
         ).fetchone())
+    width = printer_width if width is None else width
+    height = printer_height if height is None else height
     selected = set(location_ids or ())
     names = [location["label"] for location in locations if location["id"] in selected]
     names.extend(line.strip() for line in section_names.splitlines() if line.strip())
@@ -104,7 +109,8 @@ async def section_labels_preview(
     return request.app.state.templates.TemplateResponse(
         request, "section_labels_print.html",
         {"labels": labels, "width": width, "height": height, "job_id": str(uuid4()),
-         "label_names": names, "printer_paired": printer_paired, "printer_online": printer_online},
+         "label_names": names, "printer_paired": printer_paired, "printer_online": printer_online,
+         "printer_width": printer_width, "printer_height": printer_height},
     )
 
 
