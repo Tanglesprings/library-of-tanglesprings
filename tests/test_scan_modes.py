@@ -318,6 +318,11 @@ class TestInventoryMode:
         })
         assert resp.status_code == 200
         assert b"Not in your collection" in resp.content or b"not found" in resp.content
+        assert f'/scan?mode=add&amp;code=9780000999962&amp;location_id={loc_id}' in resp.text
+        add_page = admin_client.get(f"/scan?mode=add&code=9780000999962&location_id={loc_id}").text
+        assert 'data-seed-mode="add"' in add_page
+        assert 'data-seed-code="9780000999962"' in add_page
+        assert f'data-seed-location="{loc_id}"' in add_page
 
     def test_inventory_no_location(self, admin_client, db):
         _insert_item(db, title="Item", isbn="9780000000422")

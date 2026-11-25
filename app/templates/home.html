@@ -10,7 +10,7 @@
         <div class="flex flex-wrap gap-2">
             <a href="/browse" class="px-2 py-2">{{ _('Browse collection') }}</a>
             {% if user and user.role in ('admin', 'editor') %}
-            <a href="/scan" class="px-2 py-2">{{ _('Scan item') }}</a>
+            <a href="/scan?mode=add" class="px-2 py-2">{{ _('Scan to add') }}</a>
             <a href="/scan?add=manual" class="px-2 py-2">{{ _('Add by hand') }}</a>
             {% if user.role == 'admin' %}<a href="/settings#sections" class="px-2 py-2">Sections</a>{% endif %}
             {% endif %}

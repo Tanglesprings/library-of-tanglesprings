@@ -156,7 +156,8 @@ def _scan_mode_inventory(
         items_common._log_scan(raw, "", "not_owned", None, "inventory")
         return templates.TemplateResponse(
             request, "fragments/scan_result.html",
-            {"status": "not_owned", "isbn": raw, "message": i18n.gettext("Not in collection")},
+            {"status": "not_owned", "isbn": raw, "message": i18n.gettext("Not in collection"),
+             "offer_add_scan": 0 < len(raw) <= 64, "location_id": location_id},
         )
 
     # G18 — the decision, the write and the audit entry share one connection

@@ -386,7 +386,9 @@ async def _scan_isbn_inner(request, isbn, media_type, location_id, platform, mod
             items_common._log_scan(raw, "", "not_owned", None, mode)
             return templates.TemplateResponse(
                 request, "fragments/scan_result.html",
-                {"status": "not_owned", "isbn": raw, "message": i18n.gettext("Not in your collection")},
+                {"status": "not_owned", "isbn": raw, "message": i18n.gettext("Not in your collection"),
+                 "offer_add_scan": mode in ("move", "lookup") and 0 < len(raw) <= 64,
+                 "location_id": location_id if mode == "move" else None},
             )
         if mode == "lend":
             return items_scan_modes._scan_mode_lend(request, templates, item, borrower_id, raw, loan_notes)

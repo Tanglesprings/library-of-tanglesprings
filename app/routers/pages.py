@@ -186,6 +186,7 @@ async def scan(
     mode: str = "",
     code: str = "",
     move_to: str = "",
+    location_id: str = "",
     _=Depends(require_role("editor")),
 ):
     """The scan surface. `?add=manual` opens the manual entry panel (#120),
@@ -203,16 +204,20 @@ async def scan(
     except (TypeError, ValueError):
         candidate = 0
 
-    # An audit report's Add link seeds Add mode and the code. Honoured only
-    # as a pair: mode exactly "add" and a code of at most 64 characters.
+    # Add shortcuts can carry a code or location without submitting a scan.
     seed_mode, seed_code = ("add", code) if mode == "add" and len(code) <= 64 else ("", "")
 
     with get_db() as db:
         locations = db.execute(
             "SELECT * FROM locations ORDER BY sort_order, name"
         ).fetchall()
-        seed_location = move_to if mode == "move" and any(str(loc["id"]) == move_to for loc in locations) else ""
-        if seed_location:
+        target_location = ""
+        if mode == "move":
+            target_location = move_to
+        elif seed_mode == "add":
+            target_location = location_id
+        seed_location = target_location if any(str(loc["id"]) == target_location for loc in locations) else ""
+        if mode == "move" and seed_location:
             seed_mode = "move"
         game_platforms = get_game_platforms(db)
         borrowers = db.execute(

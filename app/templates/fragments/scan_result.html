@@ -240,6 +240,10 @@
         {% elif status == 'not_owned' %}
         <p class="font-medium font-mono" data-scan-title>{{ isbn }}</p>
         <p class="text-sm text-shelf-muted">{{ message }}</p>
+        {% if offer_add_scan %}
+        <a href="/scan?mode=add&amp;code={{ isbn | urlencode }}{% if location_id %}&amp;location_id={{ location_id }}{% endif %}"
+           class="inline-block mt-2 text-sm text-shelf-accent2 underline">{{ _('Look up in Add mode') }}</a>
+        {% endif %}
         {% else %}
         <p class="font-medium font-mono">{{ isbn }}</p>
         <p class="text-sm text-shelf-error" data-scan-error>{{ message }}</p>

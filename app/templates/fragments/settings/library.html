@@ -128,7 +128,8 @@
                     <nav class="flex flex-wrap gap-3 text-shelf-accent2 text-sm" aria-label="Section actions for {{ loc.name }}">
                         <a href="/browse?location_filter={{ loc.id }}" class="hover:underline">View titles</a>
                         <a href="/browse?move_to={{ loc.id }}" class="hover:underline">Move titles here</a>
-                        <a href="/scan?mode=move&amp;move_to={{ loc.id }}" class="hover:underline">Scan into section</a>
+                        <a href="/scan?mode=add&amp;location_id={{ loc.id }}" class="hover:underline">Add items here</a>
+                        <a href="/scan?mode=move&amp;move_to={{ loc.id }}" class="hover:underline">Scan to move here</a>
                         <a href="/labels/sections?location_id={{ loc.id }}" class="hover:underline">Print label</a>
                         <a href="/locations/{{ loc.id }}/arrange" class="hover:underline">Arrange</a>
                     </nav>

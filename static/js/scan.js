@@ -191,6 +191,7 @@ function scanPage() {
             var seedEl = document.querySelector('[data-seed-mode]');
             if (seedEl && seedEl.dataset.seedMode === 'add') {
                 this.mode = 'add';
+                if (seedEl.dataset.seedLocation) this.location = seedEl.dataset.seedLocation;
                 try { localStorage.setItem('shelf_scan_mode', 'add'); } catch (err) { /* private mode */ }
             }
             if (seedEl && seedEl.dataset.seedMode === 'move' && seedEl.dataset.seedLocation) {
