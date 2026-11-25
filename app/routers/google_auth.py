@@ -127,19 +127,39 @@ def _link_user(request: Request, link: dict, subject: str, email: str):
         ).fetchone()
         if user is None:
             return None
+        invitation = db.execute("SELECT user_id FROM google_invitations WHERE email = ?", (email,)).fetchone()
+        if invitation and invitation["user_id"] != user["id"]:
+            return None
         inserted = db.execute(
             "INSERT INTO google_identities (user_id, subject, email) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
             (user["id"], subject, email),
         )
-        return user if inserted.rowcount else None
+        if not inserted.rowcount:
+            return None
+        db.execute("DELETE FROM google_invitations WHERE user_id = ?", (user["id"],))
+        return user
 
 
-def _linked_user(subject: str):
+def _sign_in_user(subject: str, email: str):
+    lookup = (f"SELECT {_SESSION_COLUMNS} FROM users u JOIN google_identities g ON g.user_id = u.id "
+              "WHERE g.subject = ?")
     with get_db() as db:
-        return db.execute(
-            f"SELECT {_SESSION_COLUMNS} FROM users u JOIN google_identities g ON g.user_id = u.id "
-            "WHERE g.subject = ?", (subject,),
-        ).fetchone()
+        user = db.execute(lookup, (subject,)).fetchone()
+        # Google is authoritative for verified Gmail addresses. Other email
+        # addresses require a password-verified link to the local account.
+        email = email.casefold()
+        if user or not email.endswith("@gmail.com"):
+            return user
+        db.execute("BEGIN IMMEDIATE")
+        inserted = db.execute(
+            "INSERT INTO google_identities (user_id, subject, email) "
+            "SELECT user_id, ?, email FROM google_invitations WHERE email = ? "
+            "ON CONFLICT DO NOTHING",
+            (subject, email),
+        )
+        if inserted.rowcount:
+            db.execute("DELETE FROM google_invitations WHERE email = ?", (email,))
+        return db.execute(lookup, (subject,)).fetchone()
 
 
 @router.get(google.CALLBACK_PATH)
@@ -154,7 +174,8 @@ async def google_callback(request: Request, state: str = "", code: str = ""):
         except (httpx.HTTPError, jwt.PyJWTError, ValueError) as exc:
             logger.warning("Google sign-in failed during identity verification (%s)", type(exc).__name__)
         else:
-            user = _link_user(request, link, subject, email) if link else _linked_user(subject)
+            if email.casefold() in config.allowed_emails:
+                user = _link_user(request, link, subject, email) if link else _sign_in_user(subject, email)
 
     if user:
         destination = ACCOUNT_PATH if link else "/"

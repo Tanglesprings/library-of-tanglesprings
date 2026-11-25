@@ -38,6 +38,11 @@ On the production host, create `/opt/tanglesprings-library/google.env` with perm
 GOOGLE_CLIENT_ID=<web client ID>
 GOOGLE_CLIENT_SECRET=<web client secret>
 GOOGLE_REDIRECT_URI=https://library.tanglesprings.institute/auth/google/callback
+GOOGLE_ALLOWED_EMAILS=<comma-separated approved Google account emails>
 ```
 
+The library checks the verified email against this allowlist before linking or signing in. Google allows basic identity scopes in Testing without requiring a test-user entry. [Google OAuth audience rules](https://support.google.com/cloud/answer/15549945)
+
 Recreate the library service with the production Compose configuration. Open the library with your current username and password, then choose **Account menu → Google sign-in → Link Google account**. Confirm your library password and choose your Google account. The library saves Google's verified account identifier against the existing user and uses that user's current permissions on future sign-ins. Username and password remain available. To switch Google accounts, unlink the old account before linking the new one.
+
+An operator can provision a Gmail sign-in for a specific library user by inserting that user's ID and approved Gmail address into `google_invitations`. The first successful Google sign-in for that verified address consumes the invitation and binds the Google identity to the provisioned user. The library uses the role already assigned to that user.

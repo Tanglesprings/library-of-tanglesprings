@@ -422,6 +422,10 @@ MIGRATIONS: Sequence[tuple[int, str, str]] = (
      "CREATE TABLE IF NOT EXISTS google_identities ("
      " user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
      " subject TEXT NOT NULL UNIQUE, email TEXT NOT NULL)"),
+    (10008, "Add invitations for existing library accounts",
+     "CREATE TABLE IF NOT EXISTS google_invitations ("
+     " user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
+     " email TEXT NOT NULL UNIQUE COLLATE NOCASE)"),
 )
 
 MIGRATION_TABLES = """
@@ -429,6 +433,11 @@ CREATE TABLE IF NOT EXISTS google_identities (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     subject TEXT NOT NULL UNIQUE,
     email   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS google_invitations (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    email   TEXT NOT NULL UNIQUE COLLATE NOCASE
 );
 
 CREATE TABLE IF NOT EXISTS section_label_jobs (

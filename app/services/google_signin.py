@@ -33,13 +33,18 @@ class Config:
     client_id: str
     client_secret: str = field(repr=False)
     redirect_uri: str
+    allowed_emails: frozenset[str]
 
 
 def config_for(request: Request) -> Config | None:
     client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
     secret = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
     uri = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
-    if not client_id or not secret or not uri:
+    emails = frozenset(
+        email.strip().casefold() for email in os.environ.get("GOOGLE_ALLOWED_EMAILS", "").split(",")
+        if email.strip()
+    )
+    if not client_id or not secret or not uri or not emails:
         return None
     try:
         origin = urlsplit(uri)
@@ -49,7 +54,7 @@ def config_for(request: Request) -> Config | None:
             or origin.query or origin.fragment or origin.username is not None
             or request.url.scheme != origin.scheme or request.url.netloc != origin.netloc):
         return None
-    return Config(client_id, secret, uri)
+    return Config(client_id, secret, uri, emails)
 
 
 def enabled(request: Request) -> bool:
