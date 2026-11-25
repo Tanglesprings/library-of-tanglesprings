@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import re
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -7,6 +8,7 @@ from app import i18n
 from app.auth import require_role
 from app.database import get_db, get_setting
 from app.features import require_feature
+from app.services import circulation
 
 router = APIRouter(prefix="/api")
 
@@ -64,12 +66,27 @@ def count_overdue(db) -> int:
 @router.post("/borrowers")
 async def create_borrower(
     name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
     _=Depends(require_role("admin")),
     __=Depends(require_feature("lending")),
 ):
+    name, email, phone = name.strip(), email.strip(), phone.strip()
+    if not name or len(name) > 160 or len(email) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        return RedirectResponse(url="/settings?borrower_error=details#borrowers", status_code=303)
+    if len(phone) > 40 or not re.fullmatch(r"\+?[0-9 .()-]+", phone) or not 7 <= len(re.sub(r"\D", "", phone)) <= 15:
+        return RedirectResponse(url="/settings?borrower_error=details#borrowers", status_code=303)
     with get_db() as db:
-        db.execute("INSERT OR IGNORE INTO borrowers (name) VALUES (?)", (name.strip(),))
-    return RedirectResponse(url="/settings", status_code=303)
+        db.execute("BEGIN IMMEDIATE")
+        if db.execute("SELECT 1 FROM borrowers WHERE name = ? AND email = ? COLLATE NOCASE", (name, email)).fetchone():
+            return RedirectResponse(url="/settings?borrower_error=duplicate#borrowers", status_code=303)
+        label = name
+        suffix = 2
+        while db.execute("SELECT 1 FROM borrowers WHERE name = ?", (label,)).fetchone():
+            label = f"{name} ({suffix})"
+            suffix += 1
+        db.execute("INSERT INTO borrowers (name, email, phone) VALUES (?, ?, ?)", (label, email, phone))
+    return RedirectResponse(url="/settings#borrowers", status_code=303)
 
 
 @router.post("/borrowers/{borrower_id}/delete")
@@ -113,7 +130,8 @@ async def checkout_item(
     item_id: int,
     borrower_id: int = Form(...),
     due_days: int = Form(14),
-    notes: str = Form(""),
+    notes: str = Form("", max_length=1000),
+    copy_id: int | None = Form(None),
     _=Depends(require_role("editor")),
     __=Depends(require_feature("lending")),
 ):
@@ -135,16 +153,19 @@ async def checkout_item(
         # A stale item page can still post here after the item went to Trash.
         if db.execute("SELECT 1 FROM items_live WHERE id = ?", (item_id,)).fetchone() is None:
             return JSONResponse({"ok": False, "message": i18n.gettext("Item not found")}, status_code=404)
-        # Check not already checked out
-        active = db.execute(
-            "SELECT id FROM checkouts WHERE item_id = ? AND checked_in IS NULL", (item_id,)
-        ).fetchone()
-        if active:
+        if not db.execute("SELECT 1 FROM borrowers WHERE id = ?", (borrower_id,)).fetchone():
+            return JSONResponse({"ok": False, "message": "Borrower not found"}, status_code=404)
+        try:
+            copy = circulation.resolve_copy(db, item_id, copy_id)
+        except circulation.CirculationError as exc:
+            return JSONResponse({"ok": False, "message": str(exc)}, status_code=409)
+        resolved_copy_id = copy["id"] if copy else None
+        if circulation.active_loan(db, item_id, resolved_copy_id):
             return {"ok": False, "message": i18n.gettext("Already checked out")}
 
         db.execute(
-            "INSERT INTO checkouts (item_id, borrower_id, due_date, notes) VALUES (?, ?, ?, ?)",
-            (item_id, borrower_id, due, notes.strip() or None),
+            "INSERT INTO checkouts (item_id, borrower_id, due_date, notes, copy_id) VALUES (?, ?, ?, ?, ?)",
+            (item_id, borrower_id, due, notes.strip() or None, resolved_copy_id),
         )
 
     return RedirectResponse(url=f"/item/{item_id}", status_code=303)

@@ -179,7 +179,7 @@
     {% include "fragments/settings/tags.html" %}
 
     <!-- Borrowers -->
-    <div class="bg-shelf-card rounded-xl border border-shelf-border p-6">
+    <div id="borrowers" class="bg-shelf-card rounded-xl border border-shelf-border p-6">
         <h2 class="text-lg font-semibold mb-4">Borrowers</h2>
         {{ feature_notes.feature_off_note('lending') }}
 
@@ -194,7 +194,10 @@
         <div class="space-y-2 mb-4">
             {% for b in borrowers %}
             <div class="flex flex-wrap items-center justify-between gap-2 bg-shelf-bg rounded-lg px-4 py-2">
-                <span>{{ b.name }}</span>
+                <div>
+                    <span>{{ b.name }}</span>
+                    {% if b.email or b.phone %}<p class="text-sm text-shelf-muted">{{ b.email or '' }}{% if b.email and b.phone %} · {% endif %}{{ b.phone or '' }}</p>{% endif %}
+                </div>
                 {% if feature_on('lending') %}
                 <form action="/api/borrowers/{{ b.id }}/delete" method="post" class="inline" data-testid="borrower-remove"
                       {% if b.returned_loan_count %}data-confirm="Remove borrower '{{ b.name }}'? This also permanently deletes their {{ b.returned_loan_count }} past loan record(s)."{% else %}data-confirm="Remove borrower '{{ b.name }}'?"{% endif %}>
@@ -209,11 +212,12 @@
         {% endif %}
 
         {% if feature_on('lending') %}
-        <form action="/api/borrowers" method="post" class="flex gap-2" data-testid="borrower-add">
-            <input type="text" name="name" placeholder="Add borrower..." required
-                   class="flex-1 min-w-0 bg-shelf-bg border border-shelf-border rounded-lg px-3 py-2 text-sm text-shelf-text focus:ring-2 focus:ring-shelf-accent outline-hidden">
+        <form action="/api/borrowers" method="post" class="library-guest-form" data-testid="borrower-add">
+            <label>Name <input type="text" name="name" autocomplete="name" maxlength="160" required></label>
+            <label>Email <input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+            <label>Phone <input type="tel" name="phone" autocomplete="tel" maxlength="40" required></label>
             <button type="submit" class="px-4 py-2 bg-shelf-accent text-white rounded-lg text-sm hover:bg-shelf-accent2 transition-colors">
-                Add
+                Add guest
             </button>
         </form>
         {% endif %}

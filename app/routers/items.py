@@ -212,6 +212,7 @@ async def scan_isbn(
     request: Request, isbn: str = Form(...), media_type: str = Form("book"),
     location_id: int | None = Form(None), platform: str = Form(""),
     mode: str = Form("add"), borrower_id: int | None = Form(None),
+    loan_notes: str = Form("", max_length=1000), return_location_id: int | None = Form(None),
     legacy_confirm_isbn13: str = Form(""),
     legacy_supplement: str = Form(""),
     tags: str = Form(""), reading_status: str = Form(""),
@@ -227,14 +228,16 @@ async def scan_isbn(
     try:
         with tags_svc.default_tags(tags), item_write.default_reading_status(reading_status):
             return await _scan_isbn_inner(request, isbn, media_type, location_id, platform, mode,
-                                          borrower_id, legacy_confirm_isbn13, legacy_supplement, tags, reading_status, audit_id)
+                                          borrower_id, legacy_confirm_isbn13, legacy_supplement, tags,
+                                          reading_status, audit_id, loan_notes, return_location_id)
     except item_write.InvalidReadingStatus as e:
         return request.app.state.templates.TemplateResponse(
             request, "fragments/scan_result.html", {"status": "error", "isbn": isbn, "message": str(e)})
 
 
 async def _scan_isbn_inner(request, isbn, media_type, location_id, platform, mode, borrower_id,
-                            legacy_confirm_isbn13, legacy_supplement, tags, reading_status, audit_id=None):
+                            legacy_confirm_isbn13, legacy_supplement, tags, reading_status, audit_id=None,
+                            loan_notes="", return_location_id=None):
     """Scan a barcode: mode-aware dispatch for add, lend, return, move, inventory, lookup, quick_rate."""
     templates = request.app.state.templates
     raw = isbn.strip()
@@ -386,9 +389,9 @@ async def _scan_isbn_inner(request, isbn, media_type, location_id, platform, mod
                 {"status": "not_owned", "isbn": raw, "message": i18n.gettext("Not in your collection")},
             )
         if mode == "lend":
-            return items_scan_modes._scan_mode_lend(request, templates, item, borrower_id, raw)
+            return items_scan_modes._scan_mode_lend(request, templates, item, borrower_id, raw, loan_notes)
         if mode == "return":
-            return items_scan_modes._scan_mode_return(request, templates, item, raw)
+            return items_scan_modes._scan_mode_return(request, templates, item, raw, return_location_id)
         if mode == "move":
             return items_scan_modes._scan_mode_move(request, templates, item, location_id, raw)
         if mode == "lookup":

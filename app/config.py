@@ -24,6 +24,8 @@ MEDIA_TYPES = {
     "comic": N_("Comic / Graphic Novel"),
     "manga": N_("Manga"),
     "video_game": N_("Video Game"),
+    "board_game": N_("Board Game"),
+    "puzzle": N_("Puzzle"),
 }
 
 # The book family: media types that are read, carry ISBNs, and belong to a

@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Shelf{% endblock %}</title>
+    <title>{% block title %}Library of Tanglesprings{% endblock %}</title>
     <link rel="manifest" href="/static/manifest.webmanifest">
-    <meta name="theme-color" content="#0f1117">
+    <meta name="theme-color" content="#19221e">
+    <link rel="icon" href="/static/brand/library-stamp.png" type="image/png">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/brand/tanglesprings.css">
     <script src="/static/vendor/htmx-2.0.4.min.js"></script>
     <!--
       Script order below is load-bearing, and `make check-alpine` enforces it.
@@ -49,7 +51,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-14">
                 <div class="flex items-center gap-1">
-                    <a href="/" class="text-lg font-bold text-shelf-accent2 tracking-tight mr-6">Shelf</a>
+                    <a href="/" class="library-nav-mark"><img src="/static/brand/library-horizontal.png" alt="Library of Tanglesprings" width="2172" height="724"></a>
 
                     <!-- Disclosure menu: below lg the full tab row overflows
                          the bar, so it collapses to this. Settings lives under
@@ -99,6 +101,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {% block content %}{% endblock %}
     </main>
+    <footer class="library-footer"><a href="/source">Source code</a></footer>
 
     <!-- Toast container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>

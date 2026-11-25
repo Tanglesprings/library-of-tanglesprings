@@ -1,0 +1,45 @@
+name: Deploy Library of Tanglesprings
+
+on:
+  push:
+    branches: [main, codex/library-of-tanglesprings]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tanglesprings-library-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.LIBRARY_DEPLOY_ENABLED == 'true' && github.event.repository.name == 'library-of-tanglesprings'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Deploy the checked-out revision
+        env:
+          DEPLOY_HOST: ${{ vars.LIBRARY_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.LIBRARY_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.LIBRARY_DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.LIBRARY_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing host}" "${DEPLOY_USER:?Missing user}" "${DEPLOY_KEY:?Missing key}" "${DEPLOY_KNOWN_HOSTS:?Missing host key}"
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          release="/opt/tanglesprings-library/releases/$GITHUB_SHA"
+          source_url="https://github.com/$GITHUB_REPOSITORY/tree/$GITHUB_SHA"
+          git archive "$GITHUB_SHA" | ssh -i "$ssh_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" -- "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$release' && tar -xf - -C '$release' && cd '$release' && LIBRARY_REVISION='$GITHUB_SHA' LIBRARY_SOURCE_URL='$source_url' docker compose -f compose.production.yml up -d --build --wait --wait-timeout 180 && curl --fail --silent --show-error http://127.0.0.1:18888/api/health"

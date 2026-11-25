@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{{ _('Home') }} — Shelf{% endblock %}
+{% block title %}Circulation Desk · Library of Tanglesprings{% endblock %}
 {% block content %}
 <div>
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div class="library-cover flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-            <h1 class="text-2xl font-bold">{{ _('Home') }}</h1>
-            <p class="text-sm text-shelf-muted mt-1">{{ _('A quick view of your collection. Use Browse when you want to search, filter or organise it.') }}</p>
+            <h1>Circulation Desk</h1>
+            <p>Undercroft · Southern Annex · Parlour</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="/browse" class="px-4 py-2 bg-shelf-accent text-white rounded-lg text-sm hover:bg-shelf-accent2 transition-colors">{{ _('Browse collection') }}</a>
+            <a href="/browse" class="px-2 py-2">{{ _('Browse collection') }}</a>
             {% if user and user.role in ('admin', 'editor') %}
-            <a href="/scan" class="px-4 py-2 bg-shelf-card border border-shelf-border text-shelf-text rounded-lg text-sm hover:bg-shelf-hover transition-colors">{{ _('Scan item') }}</a>
-            <a href="/scan?add=manual" class="px-4 py-2 bg-shelf-card border border-shelf-border text-shelf-text rounded-lg text-sm hover:bg-shelf-hover transition-colors">{{ _('Add by hand') }}</a>
+            <a href="/scan" class="px-2 py-2">{{ _('Scan item') }}</a>
+            <a href="/scan?add=manual" class="px-2 py-2">{{ _('Add by hand') }}</a>
             {% endif %}
             {% if feature_on('stats') %}
-            <a href="/stats" class="px-4 py-2 bg-shelf-card border border-shelf-border text-shelf-text rounded-lg text-sm hover:bg-shelf-hover transition-colors">{{ _('Statistics') }}</a>
+            <a href="/stats" class="px-2 py-2">{{ _('Statistics') }}</a>
             {% endif %}
         </div>
     </div>

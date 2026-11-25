@@ -34,7 +34,7 @@ document.addEventListener('alpine:init', function () {
         return {
             tab: 'library',
             init() {
-                this.tab = localStorage.getItem('shelf_settings_tab') || 'library';
+                this.tab = location.hash === '#borrowers' ? 'library' : (localStorage.getItem('shelf_settings_tab') || 'library');
             },
             setTab(name) {
                 this.tab = name;

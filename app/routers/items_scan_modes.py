@@ -17,7 +17,7 @@ from app.config import status_labels
 from app.database import get_db
 from app.routers import items_common
 from app.services import audits
-from app.services import barcode_resolve
+from app.services import barcode_resolve, circulation
 from app.services import item_copies
 from app.services.item_write import ItemValueError, update_item_fields
 
@@ -57,93 +57,80 @@ def _format_copy_places(copies) -> str:
     return f"{', '.join(places[:-1])} and {places[-1]}"
 
 
-def _scan_mode_lend(request, templates, item: dict, borrower_id: int | None, raw: str):
-    """Handle lend mode: check out an item to a borrower."""
+def _circulation_error(request, templates, raw, message):
+    return templates.TemplateResponse(
+        request, "fragments/scan_result.html", {"status": "error", "isbn": raw, "message": message},
+    )
+
+
+def _circulation_result(request, templates, item, raw, mode, status, message):
+    items_common._log_scan(raw, item.get("media_type", ""), status, item["id"], mode)
+    return templates.TemplateResponse(
+        request, "fragments/scan_result.html",
+        {"status": status, "isbn": raw, "title": item["title"], "item_id": item["id"],
+         "cover_path": item.get("cover_path"), "media_type": item.get("media_type"),
+         "authors": item.get("authors"), "message": message},
+    )
+
+
+def _scan_mode_lend(request, templates, item: dict, borrower_id: int | None, raw: str, notes: str = ""):
+    """Check out the scanned physical copy in a single write transaction."""
     if not features.feature_enabled("lending"):
-        return templates.TemplateResponse(
-            request, "fragments/scan_result.html",
-            {"status": "error", "isbn": raw, "message": i18n.gettext("Lending is turned off on this Shelf.")},
-        )
+        return _circulation_error(request, templates, raw, i18n.gettext("Lending is turned off on this Shelf."))
     if not borrower_id:
-        return templates.TemplateResponse(
-            request, "fragments/scan_result.html",
-            {"status": "error", "isbn": raw, "message": i18n.gettext("No borrower selected")},
-        )
+        return _circulation_error(request, templates, raw, i18n.gettext("No borrower selected"))
 
-    with get_db() as db:
-        # Check if already checked out
-        active = db.execute(
-            "SELECT c.id, b.name FROM checkouts c JOIN borrowers b ON c.borrower_id = b.id "
-            "WHERE c.item_id = ? AND c.checked_in IS NULL", (item["id"],)
-        ).fetchone()
-        if active:
-            items_common._log_scan(raw, item.get("media_type", ""), "already_checked_out", item["id"], "lend")
-            return templates.TemplateResponse(
-                request, "fragments/scan_result.html",
-                {"status": "already_checked_out", "isbn": raw, "title": item["title"],
-                 "item_id": item["id"], "cover_path": item.get("cover_path"),
-                 "media_type": item.get("media_type"),
-                 "message": i18n.gettext("Already lent to %(name)s") % {"name": active["name"]}},
-            )
+    try:
+        with get_db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if not db.execute("SELECT 1 FROM items_live WHERE id = ?", (item["id"],)).fetchone():
+                raise circulation.CirculationError(i18n.gettext("Item not found"))
+            copy = circulation.resolve_copy(db, item["id"], item.get("copy_id"))
+            copy_id = copy["id"] if copy else None
+            active = circulation.active_loan(db, item["id"], copy_id)
+            if active:
+                status = "already_checked_out"
+                message = i18n.gettext("Already lent to %(name)s") % {"name": active["name"]}
+            else:
+                borrower = db.execute("SELECT name FROM borrowers WHERE id = ?", (borrower_id,)).fetchone()
+                if not borrower:
+                    raise circulation.CirculationError(i18n.gettext("Borrower not found"))
+                db.execute(
+                    "INSERT INTO checkouts (item_id, borrower_id, copy_id, notes) VALUES (?, ?, ?, ?)",
+                    (item["id"], borrower_id, copy_id, notes.strip() or None),
+                )
+                status = "checked_out"
+                message = i18n.gettext("Lent to %(name)s") % {"name": borrower["name"]}
+    except circulation.CirculationError as exc:
+        return _circulation_error(request, templates, raw, str(exc))
 
-        borrower = db.execute("SELECT name FROM borrowers WHERE id = ?", (borrower_id,)).fetchone()
-        if not borrower:
-            return templates.TemplateResponse(
-                request, "fragments/scan_result.html",
-                {"status": "error", "isbn": raw, "message": i18n.gettext("Borrower not found")},
-            )
-
-        db.execute(
-            "INSERT INTO checkouts (item_id, borrower_id, checked_out) VALUES (?, ?, datetime('now'))",
-            (item["id"], borrower_id),
-        )
-
-    items_common._log_scan(raw, item.get("media_type", ""), "checked_out", item["id"], "lend")
-    resp = templates.TemplateResponse(
-        request, "fragments/scan_result.html",
-        {"status": "checked_out", "isbn": raw, "title": item["title"],
-         "item_id": item["id"], "cover_path": item.get("cover_path"),
-         "media_type": item.get("media_type"),
-         "authors": item.get("authors"), "message": i18n.gettext("Lent to %(name)s") % {"name": borrower["name"]}},
-    )
-    return resp
+    return _circulation_result(request, templates, item, raw, "lend", status, message)
 
 
-def _scan_mode_return(request, templates, item: dict, raw: str):
-    """Handle return mode: check in an item."""
+def _scan_mode_return(request, templates, item: dict, raw: str, location_id: int | None = None):
+    """Close the matching copy loan and optionally shelve it in the same transaction."""
     if not features.feature_enabled("lending"):
-        return templates.TemplateResponse(
-            request, "fragments/scan_result.html",
-            {"status": "error", "isbn": raw, "message": i18n.gettext("Lending is turned off on this Shelf.")},
-        )
-    with get_db() as db:
-        active = db.execute(
-            "SELECT c.id, b.name, c.checked_out FROM checkouts c JOIN borrowers b ON c.borrower_id = b.id "
-            "WHERE c.item_id = ? AND c.checked_in IS NULL", (item["id"],)
-        ).fetchone()
-        if not active:
-            items_common._log_scan(raw, item.get("media_type", ""), "not_checked_out", item["id"], "return")
-            return templates.TemplateResponse(
-                request, "fragments/scan_result.html",
-                {"status": "not_checked_out", "isbn": raw, "title": item["title"],
-                 "item_id": item["id"], "cover_path": item.get("cover_path"),
-                 "media_type": item.get("media_type"),
-                 "message": i18n.gettext("Not currently checked out")},
-            )
+        return _circulation_error(request, templates, raw, i18n.gettext("Lending is turned off on this Shelf."))
+    try:
+        with get_db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            copy = circulation.resolve_copy(db, item["id"], item.get("copy_id"))
+            active = circulation.active_loan(db, item["id"], copy["id"] if copy else None)
+            if not active:
+                status = "not_checked_out"
+                message = i18n.gettext("Not currently checked out")
+            else:
+                if active["copy_id"] is None and item.get("copy_id") is not None:
+                    # Legacy loans identify only the title. Resolve an unambiguous copy
+                    # anew before allowing a scan to close one.
+                    copy = circulation.resolve_copy(db, item["id"], None)
+                circulation.check_in(db, active["id"], copy, location_id)
+                status = "returned"
+                message = i18n.gettext("Returned from %(name)s") % {"name": active["name"]}
+    except circulation.CirculationError as exc:
+        return _circulation_error(request, templates, raw, str(exc))
 
-        db.execute(
-            "UPDATE checkouts SET checked_in = datetime('now') WHERE id = ?", (active["id"],)
-        )
-
-    items_common._log_scan(raw, item.get("media_type", ""), "returned", item["id"], "return")
-    resp = templates.TemplateResponse(
-        request, "fragments/scan_result.html",
-        {"status": "returned", "isbn": raw, "title": item["title"],
-         "item_id": item["id"], "cover_path": item.get("cover_path"),
-         "media_type": item.get("media_type"),
-         "authors": item.get("authors"), "message": i18n.gettext("Returned from %(name)s") % {"name": active["name"]}},
-    )
-    return resp
+    return _circulation_result(request, templates, item, raw, "return", status, message)
 
 
 def _scan_mode_move(request, templates, item: dict, location_id: int | None, raw: str):

@@ -10,16 +10,20 @@ from tests.conftest import _insert_item, _insert_borrower
 
 class TestBorrowers:
     def test_create_borrower(self, admin_client):
-        resp = admin_client.post("/api/borrowers", data={"name": "Alice"}, follow_redirects=False)
+        resp = admin_client.post("/api/borrowers", data={
+            "name": "Alice", "email": "alice@example.test", "phone": "+1 507 555 0100",
+        }, follow_redirects=False)
         assert resp.status_code == 303
         with get_db() as db:
-            row = db.execute("SELECT name FROM borrowers WHERE name = 'Alice'").fetchone()
-        assert row is not None
+            row = db.execute("SELECT email, phone FROM borrowers WHERE name = 'Alice'").fetchone()
+        assert tuple(row) == ("alice@example.test", "+1 507 555 0100")
 
     def test_create_duplicate_borrower_ignored(self, admin_client, db):
-        _insert_borrower(db, "Bob")
+        db.execute("INSERT INTO borrowers (name, email) VALUES ('Bob', 'bob@example.test')")
         db.commit()
-        resp = admin_client.post("/api/borrowers", data={"name": "Bob"}, follow_redirects=False)
+        resp = admin_client.post("/api/borrowers", data={
+            "name": "Bob", "email": "BOB@example.test", "phone": "5075550101",
+        }, follow_redirects=False)
         assert resp.status_code == 303
         with get_db() as check_db:
             count = check_db.execute("SELECT COUNT(*) as c FROM borrowers WHERE name = 'Bob'").fetchone()["c"]
@@ -198,11 +202,42 @@ class TestBorrowers:
             assert check_db.execute("SELECT id FROM borrowers WHERE id = ?", (bid,)).fetchone() is not None
 
     def test_borrower_requires_admin(self, editor_client):
-        resp = editor_client.post("/api/borrowers", data={"name": "Hacker"}, follow_redirects=False)
+        resp = editor_client.post("/api/borrowers", data={
+            "name": "Guest", "email": "guest@example.test", "phone": "5075550102",
+        }, follow_redirects=False)
         assert resp.status_code in (303, 401, 403)
 
 
 class TestCheckout:
+    def test_scan_lends_distinct_copies_and_returns_one_to_new_room(self, admin_client, db):
+        item_id = _insert_item(db, title="Two Copies", isbn="9780000001108")
+        first_guest = _insert_borrower(db, "First Guest")
+        second_guest = _insert_borrower(db, "Second Guest")
+        parlour = db.execute("INSERT INTO locations (name) VALUES ('Parlour')").lastrowid
+        first_copy = db.execute(
+            "INSERT INTO item_copies (item_id, copy_number, copy_barcode) VALUES (?, 1, 'TSL-0001')", (item_id,),
+        ).lastrowid
+        second_copy = db.execute(
+            "INSERT INTO item_copies (item_id, copy_number, copy_barcode) VALUES (?, 2, 'TSL-0002')", (item_id,),
+        ).lastrowid
+        db.commit()
+
+        def scan(barcode, mode, **details):
+            return admin_client.post("/api/scan", data={"isbn": barcode, "mode": mode, **details})
+
+        assert "choose a specific copy" in scan("9780000001108", "lend", borrower_id=first_guest).text
+        assert "Lent to First Guest" in scan("TSL-0001", "lend", borrower_id=first_guest, loan_notes="Original case").text
+        assert "Lent to Second Guest" in scan("TSL-0002", "lend", borrower_id=second_guest).text
+        assert "Already lent to First Guest" in scan("TSL-0001", "lend", borrower_id=second_guest).text
+        assert "Returned from First Guest" in scan("TSL-0001", "return", return_location_id=parlour).text
+        with get_db() as check_db:
+            first = check_db.execute("SELECT checked_in, notes FROM checkouts WHERE copy_id = ?", (first_copy,)).fetchone()
+            second = check_db.execute("SELECT checked_in FROM checkouts WHERE copy_id = ?", (second_copy,)).fetchone()
+            location = check_db.execute("SELECT location_id FROM copies_live WHERE id = ?", (first_copy,)).fetchone()
+        assert first["checked_in"] and first["notes"] == "Original case"
+        assert second["checked_in"] is None
+        assert location["location_id"] == parlour
+
     def test_checkout_item(self, admin_client, db):
         item_id = _insert_item(db, title="Checkout Book", isbn="9780000001108")
         bid = _insert_borrower(db, "Eve")

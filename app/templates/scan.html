@@ -158,17 +158,31 @@
 
                 <!-- Borrower (lend only) -->
                 <div x-show="mode === 'lend'" x-transition style="display:none">
-                    <label class="block text-sm font-medium text-shelf-muted mb-1">{{ _('Borrower') }}</label>
-                    <select name="borrower_id" x-model="borrowerId" :disabled="mode !== 'lend'"
+                    <label for="scan-borrower" class="block text-sm font-medium text-shelf-muted mb-1">{{ _('Borrower') }}</label>
+                    <select id="scan-borrower" name="borrower_id" x-model="borrowerId" :disabled="mode !== 'lend'"
                             class="w-full bg-shelf-bg border border-shelf-border rounded-lg px-3 py-2.5 text-shelf-text focus:ring-2 focus:ring-shelf-accent focus:border-transparent outline-hidden">
                         <option value="">{{ _('Select borrower...') }}</option>
                         {% for b in borrowers %}
                         <option value="{{ b.id }}">{{ b.name }}</option>
                         {% endfor %}
                     </select>
-                    {% if not borrowers %}
-                    <p class="text-xs text-shelf-muted mt-1">{{ _('No borrowers yet. Add them in <a href="/settings" class="text-shelf-accent2 underline">Settings</a>.') }}</p>
+                    {% if user and user.role == 'admin' %}
+                    <a href="/settings#borrowers" class="text-sm text-shelf-accent2 underline">Register a guest</a>
                     {% endif %}
+                    <label class="library-scan-field">Private loan note
+                        <input type="text" name="loan_notes" maxlength="1000" :disabled="mode !== 'lend'">
+                    </label>
+                </div>
+
+                <div x-show="mode === 'return'" x-transition style="display:none">
+                    <label class="library-scan-field">Return location
+                        <select name="return_location_id" :disabled="mode !== 'return'">
+                            <option value="">Keep current shelf location</option>
+                            {% for location in locations %}
+                            <option value="{{ location.id }}">{{ location.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
                 </div>
 
                 <!-- ISBN / Barcode Input (always shown) -->

@@ -327,6 +327,10 @@ def bootstrap_sql_before(up_to: int) -> str:
     for version, _description, statement in MIGRATIONS:
         if version <= up_to:
             continue
+        index = re.match(r"CREATE (?:UNIQUE )?INDEX IF NOT EXISTS (\w+)", statement, re.I)
+        if index:
+            sql = re.sub(rf"\nCREATE (?:UNIQUE )?INDEX IF NOT EXISTS {index.group(1)}\b[^;]*;", "", sql)
+            continue
         match = _ALTER_COLUMN.search(statement or "")
         if not match:
             continue

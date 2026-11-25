@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('Welcome') }} - Shelf</title>
+    <title>{{ _('Welcome') }} · Library of Tanglesprings</title>
     <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/brand/tanglesprings.css">
     <script src="/static/js/component-load-guard.js"></script>
     <script src="/static/js/components.js"></script>
     <script defer src="/static/vendor/alpinejs-csp-3.15.9.min.js"></script>
@@ -12,7 +13,7 @@
 <body class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-md" x-data="setupForm">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-shelf-accent2 tracking-tight">{{ _('Welcome to Shelf') }}</h1>
+            {% include "fragments/library_wordmark.html" %}
             <p class="text-shelf-muted text-sm mt-2">{{ _('Create your admin account to get started.') }}</p>
         </div>
 
@@ -57,12 +58,12 @@
                on the passwords only. The list and each "Adds:" line come from
                the registry (features.profile_choices), never a hand-written list. #}
             <fieldset data-testid="setup-profiles" class="space-y-2">
-                <legend class="block text-sm font-medium text-shelf-muted mb-1">{{ _('How much of Shelf do you want to start with?') }}</legend>
+                <legend class="block text-sm font-medium text-shelf-muted mb-1">Library features</legend>
                 {% for p in profiles %}
                 <label class="flex items-start gap-3 bg-shelf-bg border border-shelf-border rounded-lg px-3 py-2 cursor-pointer has-checked:border-shelf-accent">
                     <input type="radio" name="profile" value="{{ p.name }}" data-testid="setup-profile-{{ p.name }}"
                         class="mt-1 bg-shelf-bg border-shelf-border text-shelf-accent focus:ring-shelf-accent"
-                        {% if p.name == selected_profile %}checked{% endif %}>
+                    {% if p.name == selected_profile %}checked{% endif %}>
                     <span class="text-sm">
                         <span class="block font-medium text-shelf-text">{{ p.label }}</span>
                         <span class="block text-shelf-muted">{{ p.description }}</span>

@@ -99,7 +99,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-_SKIP_AUTH_PATHS = frozenset({"/login", "/setup", "/logout", "/health", "/sw.js"})
+_SKIP_AUTH_PATHS = frozenset({"/login", "/setup", "/logout", "/health", "/api/health", "/source", "/sw.js"})
 _SKIP_AUTH_PREFIXES = ("/static/", "/covers/", "/share/")
 
 
@@ -684,7 +684,7 @@ async def lifespan(app: FastAPI):
         cover_task.cancel()
 
 
-app = FastAPI(title="Shelf", lifespan=lifespan)
+app = FastAPI(title="Library of Tanglesprings", lifespan=lifespan)
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
@@ -838,6 +838,7 @@ app.mount("/covers", CacheControlStaticFiles(directory=str(COVERS_DIR)), name="c
 
 # Health check (unauthenticated, for container orchestration)
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     try:
         with get_db() as db:
@@ -845,6 +846,13 @@ async def health():
         return {"status": "ok"}
     except Exception:
         return Response("Database unavailable", status_code=503)
+
+
+@app.get("/source", include_in_schema=False)
+async def corresponding_source():
+    return RedirectResponse(os.environ.get(
+        "LIBRARY_SOURCE_URL", "https://github.com/Tanglesprings/library-of-tanglesprings",
+    ))
 
 
 # Routers

@@ -114,14 +114,17 @@ def test_add_user_surfaces_server_rejection(live_server, authed_page):
 def _remove_button(page, name):
     """The Remove button in the settings row whose label span is `name`."""
     return page.locator(
-        f"//span[normalize-space(text())='{name}']/following-sibling::form//button"
+        f"//span[normalize-space(text())='{name}']/ancestor::div[form][1]/form//button"
     )
 
 
 def _add_borrower(page, live_server, name):
     page.goto(f"{live_server['url']}/settings")
     page.wait_for_load_state("networkidle")
-    page.fill('input[placeholder="Add borrower..."]', name)
+    form = page.locator('form[data-testid="borrower-add"]')
+    form.locator('input[name="name"]').fill(name)
+    form.locator('input[name="email"]').fill("guest@example.test")
+    form.locator('input[name="phone"]').fill("5075550100")
     with page.expect_navigation():
         page.locator('form[action="/api/borrowers"] button[type="submit"]').click()
     expect(_remove_button(page, name)).to_be_visible()

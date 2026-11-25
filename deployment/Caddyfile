@@ -1,0 +1,9 @@
+{$LIBRARY_SITE:library.tanglesprings.institute} {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000"
+
+    @setup path /setup /setup/
+    respond @setup "The circulation desk is being prepared." 503
+
+    reverse_proxy library:18888
+}

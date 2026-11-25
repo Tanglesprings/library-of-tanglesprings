@@ -234,13 +234,13 @@
                 </div>
                 {% endif %}
 
-                {% if feature_on('lending') and ((user and user.role in ('admin', 'editor')) or current_checkout or checkout_history) %}
+                {% if feature_on('lending') and ((user and user.role in ('admin', 'editor')) or current_checkouts or checkout_history) %}
                 <!-- Lending -->
                 <div class="mb-6" x-data="{ showLendForm: false }">
                     <p class="text-sm font-medium text-shelf-muted mb-2">{{ _('Lending') }}</p>
-                    {% if current_checkout %}
-                    <div class="bg-shelf-warning/10 border border-shelf-warning/30 rounded-lg p-3 text-sm">
-                        <p>{{ _('Lent to') }} <span class="font-medium text-shelf-warning">{{ current_checkout.borrower_name }}</span>
+                    {% for current_checkout in current_checkouts %}
+                    <div class="bg-shelf-warning/10 border border-shelf-warning/30 rounded-lg p-3 text-sm mb-2">
+                        <p>{% if current_checkout.copy_number %}Copy {{ current_checkout.copy_number }} · {% endif %}{{ _('Lent to') }} <span class="font-medium text-shelf-warning">{{ current_checkout.borrower_name }}</span>
                         {{ _('on %(date)s', date=current_checkout.checked_out[:10]) }}
                         {% if current_checkout.due_date %}
                          · {{ _('Due:') }} <span class="{% if current_checkout.due_date < now_date %}text-shelf-error{% endif %}">{{ current_checkout.due_date }}</span>
@@ -254,7 +254,8 @@
                         </form>
                         {% endif %}
                     </div>
-                    {% elif user and user.role in ('admin', 'editor') %}
+                    {% endfor %}
+                    {% if can_lend_copy and user and user.role in ('admin', 'editor') %}
                     <button @click="showLendForm = !showLendForm"
                             class="px-3 py-1.5 bg-shelf-card border border-shelf-border text-shelf-muted rounded-lg text-xs hover:border-shelf-accent/50 transition-colors">
                         {{ _('Lend this item') }}
@@ -262,6 +263,15 @@
                     <div x-show="showLendForm" x-transition class="mt-2" style="display:none">
                         {% if borrowers %}
                         <form action="/api/items/{{ item.id }}/checkout" method="post" class="flex flex-wrap gap-2 items-end">
+                            {% if available_copies %}
+                            <label class="text-sm text-shelf-muted">Copy
+                                <select name="copy_id" required class="bg-shelf-bg border border-shelf-border rounded-lg px-2 py-1 text-sm text-shelf-text">
+                                    {% for copy in available_copies %}
+                                    <option value="{{ copy.id }}">{{ copy.copy_number }}{% if copy.location_name %} · {{ copy.location_name }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            {% endif %}
                             <select name="borrower_id" required class="bg-shelf-bg border border-shelf-border rounded-lg px-2 py-1 text-sm text-shelf-text">
                                 {% for b in borrowers %}
                                 <option value="{{ b.id }}">{{ b.name }}</option>
@@ -273,6 +283,9 @@
                                 <option value="30">{{ _('1 month') }}</option>
                                 <option value="0">{{ _('No due date') }}</option>
                             </select>
+                            <label class="text-sm text-shelf-muted">Private loan note
+                                <input name="notes" type="text" maxlength="1000" class="bg-shelf-bg border border-shelf-border rounded-lg px-2 py-1 text-sm text-shelf-text">
+                            </label>
                             <button type="submit" class="px-3 py-1 bg-shelf-accent text-white rounded-lg text-xs">{{ _('Check Out') }}</button>
                         </form>
                         {% else %}
@@ -287,6 +300,7 @@
                         <div class="mt-2 space-y-1">
                             {% for co in checkout_history %}
                             <div class="text-xs text-shelf-muted flex gap-2">
+                                {% if co.copy_number %}<span>Copy {{ co.copy_number }}</span>{% endif %}
                                 <span>{{ co.borrower_name }}</span>
                                 <span>{{ co.checked_out[:10] }}</span>
                                 {% if co.checked_in %}
@@ -295,6 +309,9 @@
                                 <span class="text-shelf-warning">{{ _('out') }}</span>
                                 {% endif %}
                             </div>
+                            {% if co.notes and user and user.role in ('admin', 'editor') %}
+                            <p class="text-sm text-shelf-muted">{{ co.notes }}</p>
+                            {% endif %}
                             {% endfor %}
                         </div>
                     </details>

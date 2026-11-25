@@ -405,6 +405,13 @@ MIGRATIONS: Sequence[tuple[int, str, str]] = (
     # libraries. An edition identifier like isbn/upc.
     (56, "Add items ASIN", "ALTER TABLE items ADD COLUMN asin TEXT"),
     (57, "Index items ASIN", "CREATE INDEX IF NOT EXISTS idx_items_asin ON items(asin)"),
+    (10001, "Add borrower email", "ALTER TABLE borrowers ADD COLUMN email TEXT"),
+    (10002, "Add borrower phone", "ALTER TABLE borrowers ADD COLUMN phone TEXT"),
+    (10004, "Associate checkouts with physical copies",
+     "ALTER TABLE checkouts ADD COLUMN copy_id INTEGER REFERENCES item_copies(id) ON DELETE SET NULL"),
+    (10005, "Index active checkouts by physical copy",
+     "CREATE UNIQUE INDEX IF NOT EXISTS idx_checkout_active_copy ON checkouts(copy_id) "
+     "WHERE checked_in IS NULL AND copy_id IS NOT NULL"),
 )
 
 MIGRATION_TABLES = """
@@ -447,6 +454,8 @@ CREATE INDEX IF NOT EXISTS idx_price_history_item ON price_history(item_id, obse
 CREATE TABLE IF NOT EXISTS borrowers (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL UNIQUE,
+    email      TEXT,
+    phone      TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -458,6 +467,7 @@ CREATE TABLE IF NOT EXISTS checkouts (
     due_date      TEXT,
     checked_in    TEXT,
     notes         TEXT,
+    copy_id       INTEGER REFERENCES item_copies(id) ON DELETE SET NULL,
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_checkouts_item ON checkouts(item_id);
@@ -484,6 +494,8 @@ CREATE INDEX IF NOT EXISTS idx_item_copies_item ON item_copies(item_id, copy_num
 CREATE INDEX IF NOT EXISTS idx_item_copies_location ON item_copies(location_id, item_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_item_copies_one_primary
     ON item_copies(item_id) WHERE is_primary = 1;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_checkout_active_copy
+    ON checkouts(copy_id) WHERE checked_in IS NULL AND copy_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS audit_sessions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

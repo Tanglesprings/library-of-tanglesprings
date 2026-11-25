@@ -13,7 +13,7 @@ from app.auth import (
 )
 from app import features, i18n
 from app.config import get_client_ip
-from app.database import get_db
+from app.database import get_db, set_setting
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +142,12 @@ async def setup(
         # Same transaction as the admin row: no install holds an admin and
         # half a profile (G118). No logging in here (G3).
         features.apply_profile(db, profile)
+        set_setting(db, "copy_barcode_prefix", "TSL")
+        db.execute(
+            "INSERT OR IGNORE INTO locations (name, label, sort_order) VALUES "
+            "('Undercroft', 'Undercroft', 1), ('Southern Annex', 'Southern Annex', 2), "
+            "('Parlour', 'Parlour', 3)"
+        )
         user = db.execute("SELECT id, username, role, display_name, token_version FROM users WHERE username = ?", (username,)).fetchone()
 
     token = create_token(user["id"], user["username"], user["role"], user["display_name"], user["token_version"])

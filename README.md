@@ -1,4 +1,8 @@
-# Shelf
+# Library of Tanglesprings
+
+The Library of Tanglesprings catalogs and lends physical media from the Undercroft, Southern Annex, and Parlour. It is based on Shelf v0.82.1 and retains its AGPL-3.0 license. [Library deployment](deployment/README.md) · [Logo files and image briefs](static/brand/README.md)
+
+## Upstream Shelf
 
 [![Release](https://img.shields.io/github/v/release/dgahagan/shelf)](https://github.com/dgahagan/shelf/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dangahagan/shelf)](https://hub.docker.com/r/dangahagan/shelf)

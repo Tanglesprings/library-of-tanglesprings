@@ -1,0 +1,53 @@
+name: tanglesprings-library
+
+services:
+  library:
+    image: tanglesprings-library:${LIBRARY_REVISION:-local}
+    build: .
+    restart: unless-stopped
+    environment:
+      SHELF_TLS: 'off'
+      SHELF_TRUST_PROXY: 172.29.57.2
+      TZ: America/Chicago
+      LIBRARY_SOURCE_URL: ${LIBRARY_SOURCE_URL:-https://github.com/Tanglesprings/library-of-tanglesprings}
+    volumes:
+      - library-data:/data
+    ports:
+      - '127.0.0.1:18888:18888'
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18888/api/health', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    networks: [library-net]
+
+  proxy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    depends_on:
+      library:
+        condition: service_healthy
+    environment:
+      LIBRARY_SITE: ${LIBRARY_SITE:-library.tanglesprings.institute}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deployment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      library-net:
+        ipv4_address: 172.29.57.2
+
+networks:
+  library-net:
+    ipam:
+      config:
+        - subnet: 172.29.57.0/24
+
+volumes:
+  library-data:
+  caddy-data:
+  caddy-config:

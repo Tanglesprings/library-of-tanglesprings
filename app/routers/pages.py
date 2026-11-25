@@ -288,16 +288,18 @@ async def item_detail(
             return RedirectResponse(url="/browse")
 
         # Checkout info
-        current_checkout = db.execute(
-            "SELECT c.*, b.name as borrower_name FROM checkouts c "
+        current_checkouts = db.execute(
+            "SELECT c.*, b.name as borrower_name, p.copy_number FROM checkouts c "
             "JOIN borrowers b ON c.borrower_id = b.id "
-            "WHERE c.item_id = ? AND c.checked_in IS NULL",
+            "LEFT JOIN item_copies p ON c.copy_id = p.id "
+            "WHERE c.item_id = ? AND c.checked_in IS NULL ORDER BY p.copy_number, c.id",
             (item_id,),
-        ).fetchone()
+        ).fetchall()
         checkout_history = db.execute(
-            "SELECT c.*, b.name as borrower_name FROM checkouts c "
+            "SELECT c.*, b.name as borrower_name, p.copy_number FROM checkouts c "
             "JOIN borrowers b ON c.borrower_id = b.id "
-            "WHERE c.item_id = ? ORDER BY c.created_at DESC LIMIT 10",
+            "LEFT JOIN item_copies p ON c.copy_id = p.id "
+            "WHERE c.item_id = ? ORDER BY c.created_at DESC, c.id DESC LIMIT 10",
             (item_id,),
         ).fetchall()
         borrowers = db.execute("SELECT * FROM borrowers ORDER BY name").fetchall()
@@ -346,6 +348,8 @@ async def item_detail(
         # the compatibility seam and names only one place; a merged item can
         # legitimately have copies in two (issue #116).
         copies = item_copies.copies_for_item(db, item_id)
+        lent_copy_ids = {loan["copy_id"] for loan in current_checkouts}
+        available_copies = [copy for copy in copies if copy["id"] not in lent_copy_ids]
         # The copies block's controls build their location <select> from this;
         # a fragment re-rendered without it loses every picker. There is no
         # shared all_locations() helper — four routes inline this same query.
@@ -409,7 +413,9 @@ async def item_detail(
             "synopsis_media_types": SYNOPSIS_MEDIA_TYPES,
             "game_platforms": game_platforms,
             "has_hardcover": has_hardcover,
-            "current_checkout": current_checkout,
+            "current_checkouts": current_checkouts,
+            "available_copies": available_copies,
+            "can_lend_copy": None not in lent_copy_ids and (bool(available_copies) or not copies),
             "checkout_history": checkout_history,
             "borrowers": borrowers,
             "now_date": date.today().isoformat(),
@@ -687,6 +693,8 @@ async def logs(
 
 BORROWER_ERROR_MESSAGES = {
     "active": "That borrower still has an active loan — check the item in before removing them.",
+    "details": "Enter a name, a valid email address, and a phone number with 7 to 15 digits.",
+    "duplicate": "A borrower with that name and email is already registered.",
 }
 
 
