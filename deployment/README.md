@@ -13,6 +13,8 @@ docker run -d --name tanglesprings-library-pilot \
 
 Open `https://localhost:18889/setup` and accept the local certificate for the pilot. Choose the **Everything** profile for individual copy labels, or enable **Collector tools** in Settings after setup. The initial setup creates Undercroft, Southern Annex, and Parlour. Register guests from **Settings → Library → Borrowers**. On **Scan**, select **Lend** or **Return**. Scan the copy label when more than one copy shares a retail code. Use **Add by hand** for board games and puzzles.
 
+Open **Settings → Library → Locations → Print section labels** to print room, shelf, or custom divider labels. The builder starts at 89 × 28 mm and accepts the dimensions printed on your stock. Print at actual size on the Mac with the DYMO queue or from a Mac that has added that shared printer.
+
 ## Production host
 
 1. Use a DigitalOcean Linux host with Docker Compose v2 and a persistent disk. Allow ports 80 and 443 for Caddy and restrict SSH to authorized access. Keep the upstream web port on loopback. Set the `library` A record in the `tanglesprings.institute` DigitalOcean zone to the host’s IPv4 address.

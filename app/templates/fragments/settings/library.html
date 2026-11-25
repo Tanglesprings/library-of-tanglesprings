@@ -103,7 +103,10 @@
 
     <!-- Locations -->
     <div class="bg-shelf-card rounded-xl border border-shelf-border p-6">
-        <h2 class="text-lg font-semibold mb-4">Locations</h2>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold">Locations</h2>
+            <a href="/labels/sections" class="text-shelf-accent2 underline">Print section labels</a>
+        </div>
         <p class="text-sm text-shelf-muted mb-4">Locations can be nested to whatever depth your collection needs, for example Living Room → Bookcase 1 → Shelf 3. A parent can also be used as a location itself.</p>
 
         {% set location_error = request.query_params.get('location_error') %}

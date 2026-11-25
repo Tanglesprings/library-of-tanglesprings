@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Section labels · Library of Tanglesprings{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-2">Section labels</h1>
+    <p class="text-shelf-muted mb-4">Print one black-on-white label per divider. Use a saved shelf name, or enter labels for genres, letters, and other sections.</p>
+    {% if error %}<p role="alert" class="text-shelf-error mb-4">{{ error }}</p>{% endif %}
+    <form method="post" action="/labels/sections" class="bg-shelf-card border border-shelf-border rounded-lg p-6 space-y-4">
+        {% if locations %}
+        <fieldset>
+            <legend class="font-semibold mb-2">Saved locations</legend>
+            <div class="grid gap-2 max-h-52 overflow-y-auto">
+                {% for location in locations %}
+                <label><input type="checkbox" name="location_ids" value="{{ location.id }}" {% if selected and location.id in selected %}checked{% endif %}> {{ location.name }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endif %}
+        <label class="block">Custom labels, one per line
+            <textarea name="section_names" rows="5" maxlength="12000" class="block w-full mt-1 bg-shelf-bg border border-shelf-border rounded-lg px-3 py-2" placeholder="Mystery&#10;Science Fiction&#10;Travel">{{ section_names or '' }}</textarea>
+        </label>
+        <fieldset class="library-guest-form">
+            <legend class="font-semibold">Stock dimensions</legend>
+            <label>Width in mm <input type="number" name="width" value="{{ width|default(89) }}" min="15" max="210" step="any" required></label>
+            <label>Height in mm <input type="number" name="height" value="{{ height|default(28) }}" min="10" max="159" step="any" required></label>
+        </fieldset>
+        <button type="submit" class="px-4 py-2 bg-shelf-accent text-white rounded-lg">Preview labels</button>
+    </form>
+</div>
+{% endblock %}

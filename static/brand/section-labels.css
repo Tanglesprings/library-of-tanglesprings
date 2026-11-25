@@ -1,0 +1,29 @@
+body { margin: 0; color: #19221e; background: #efe7d8; font: 16px system-ui, sans-serif; }
+.print-controls { padding: 1.25rem; }
+.print-controls h1 { margin: 0; font: 700 1.8rem Georgia, serif; }
+.print-controls a { margin-left: 1rem; color: #722a36; }
+.print-controls button { border: 0; padding: 0.65rem 1rem; background: #722a36; color: white; font: inherit; cursor: pointer; }
+.section-label {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.65rem 1.25rem;
+    padding: 0 3mm;
+    background-color: white;
+    color: black;
+    border: 1px solid #a99c86;
+    font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    font-weight: 900;
+    line-height: 1.1;
+    text-align: center;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+@media print {
+    body { background: white; }
+    .print-controls { display: none; }
+    .section-label { margin: 0; border: 0; break-inside: avoid; }
+    .section-label:not(:last-child) { break-after: page; }
+}

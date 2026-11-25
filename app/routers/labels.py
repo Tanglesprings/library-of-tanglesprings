@@ -22,6 +22,7 @@ from app.database import get_db
 from app.features import require_feature
 from app.routers import item_copies as copies_router
 from app.services import code128, copy_labels, item_copies
+from app.services.locations import location_tree
 from app.services import locations as location_svc
 
 page_router = APIRouter()
@@ -60,6 +61,43 @@ async def labels_page(
         {"locations": locations, "code_prefix": code_prefix,
          "presets": copy_labels.PRESETS.values(),
          "default_preset": copy_labels.DEFAULT_PRESET},
+    )
+
+
+@page_router.get("/labels/sections")
+async def section_labels(request: Request, _=Depends(require_role("editor"))):
+    with get_db() as db:
+        locations = location_tree(db)
+    return request.app.state.templates.TemplateResponse(
+        request, "section_labels.html", {"locations": locations},
+    )
+
+
+@page_router.post("/labels/sections")
+async def section_labels_preview(
+    request: Request,
+    location_ids: list[int] | None = Form(None),
+    section_names: str = Form("", max_length=12000),
+    width: float = Form(89, ge=15, le=210),
+    height: float = Form(28, ge=10, le=159),
+    _=Depends(require_role("editor")),
+):
+    with get_db() as db:
+        locations = location_tree(db)
+    selected = set(location_ids or ())
+    names = [location["label"] for location in locations if location["id"] in selected]
+    names.extend(line.strip() for line in section_names.splitlines() if line.strip())
+    if not names or len(names) > 300 or any(len(name) > 100 for name in names):
+        return request.app.state.templates.TemplateResponse(
+            request, "section_labels.html",
+            {"locations": locations, "selected": selected, "section_names": section_names,
+             "width": width, "height": height,
+             "error": "Provide 1 to 300 labels, with at most 100 characters per label."},
+            status_code=400,
+        )
+    labels = [(name, min(height * 0.36, (width - 6) / (max(7, len(name)) * 0.67))) for name in names]
+    return request.app.state.templates.TemplateResponse(
+        request, "section_labels_print.html", {"labels": labels, "width": width, "height": height},
     )
 
 

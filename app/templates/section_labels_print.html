@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Print section labels · Library of Tanglesprings</title>
+    <link rel="stylesheet" href="/static/brand/section-labels.css">
+    <style>
+        @page { size: {{ width }}mm {{ height }}mm; margin: 0; }
+        .section-label { width: {{ width }}mm; height: {{ height }}mm; }
+    </style>
+</head>
+<body>
+    <header class="print-controls">
+        <h1>Section labels</h1>
+        <p>Choose the DYMO and matching {{ '%g'|format(width) }} × {{ '%g'|format(height) }} mm stock. Set scale to 100% and turn off headers and footers.</p>
+        <button type="button" data-print-page>Print labels</button>
+        <a href="/labels/sections">New labels</a>
+    </header>
+    <main>
+        {% for name, size in labels %}
+        <div class="section-label" style="font-size: {{ size|round(2) }}mm">{{ name }}</div>
+        {% endfor %}
+    </main>
+    <script src="/static/js/labels.js"></script>
+</body>
+</html>
