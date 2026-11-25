@@ -102,9 +102,9 @@
     </div>
 
     <!-- Locations -->
-    <div class="bg-shelf-card rounded-xl border border-shelf-border p-6">
+    <div id="sections" class="bg-shelf-card rounded-xl border border-shelf-border p-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 class="text-lg font-semibold">Locations</h2>
+            <h2 class="text-lg font-semibold">Rooms and sections</h2>
             <a href="/labels/sections" class="text-shelf-accent2 underline">Print section labels</a>
         </div>
         <p class="text-sm text-shelf-muted mb-4">Locations can be nested to whatever depth your collection needs, for example Living Room → Bookcase 1 → Shelf 3. A parent can also be used as a location itself.</p>
@@ -125,7 +125,13 @@
             <div class="bg-shelf-bg rounded-lg px-4 py-2" data-testid="location-row-{{ loc.id }}">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span>{{ loc.name }}</span>
-                    <a href="/locations/{{ loc.id }}/arrange" class="text-shelf-accent2 hover:underline text-sm">Arrange</a>
+                    <nav class="flex flex-wrap gap-3 text-shelf-accent2 text-sm" aria-label="Section actions for {{ loc.name }}">
+                        <a href="/browse?location_filter={{ loc.id }}" class="hover:underline">View titles</a>
+                        <a href="/browse?move_to={{ loc.id }}" class="hover:underline">Move titles here</a>
+                        <a href="/scan?mode=move&amp;move_to={{ loc.id }}" class="hover:underline">Scan into section</a>
+                        <a href="/labels/sections?location_id={{ loc.id }}" class="hover:underline">Print label</a>
+                        <a href="/locations/{{ loc.id }}/arrange" class="hover:underline">Arrange</a>
+                    </nav>
                     <form action="/api/locations/{{ loc.id }}/delete" method="post" class="inline"
                           data-confirm="Delete location '{{ loc.name }}'?">
                         <button type="submit" class="text-shelf-muted hover:text-shelf-error text-sm transition-colors">
@@ -134,7 +140,7 @@
                     </form>
                 </div>
                 <details>
-                    <summary class="text-shelf-muted text-sm">Edit</summary>
+                    <summary class="text-shelf-muted text-sm">Rename or move section</summary>
                     <form action="/api/locations/{{ loc.id }}/update" method="post" class="space-y-2">
                         <div>
                             <label for="location-name-{{ loc.id }}" class="block text-sm font-medium text-shelf-muted mb-2">Name</label>

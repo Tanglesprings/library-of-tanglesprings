@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Browse') }} — Shelf{% endblock %}
 {% block content %}
-<div x-data="browsePage" data-initial-query="{{ initial_query or '' }}" class="flex flex-col">
+<div x-data="browsePage" data-initial-query="{{ initial_query or '' }}"
+     {% if move_section %}data-move-to="{{ move_section.id }}"{% endif %} class="flex flex-col">
+    {% if move_section %}
+    <p class="text-shelf-muted mb-4">Select titles to move into <strong>{{ move_section.name }}</strong>.</p>
+    {% endif %}
     <!-- Bulk Action Bar. order-last + sticky, not fixed: it takes its own height in the
          flow below the grid, so the last row can always scroll clear of it. The bar wraps,
          so that height changes with the viewport width (issue #159). -->
@@ -16,7 +20,7 @@
                 {% endfor %}
             </select>
             <button @click="bulkUpdate({location_id: parseInt(bulkLocationVal) || null})" x-show="bulkLocationVal"
-                    class="px-3 py-1 bg-shelf-accent text-white rounded-lg text-xs">{{ _('Apply') }}</button>
+                    class="px-3 py-1 bg-shelf-accent text-white rounded-lg text-xs">{{ _('Move selected') }}</button>
             <select x-model="bulkTypeVal" class="bg-shelf-bg border border-shelf-border rounded-lg px-2 py-1 text-sm text-shelf-text">
                 <option value="">{{ _('Change type...') }}</option>
                 {% for key, label in media_types.items() %}

@@ -40,6 +40,10 @@ function browsePage() {
             // first rather than being populated lazily.
             this.visibleCols = this.loadColumns();
             this.searchQuery = this.$el.dataset.initialQuery || '';
+            if (this.$el.dataset.moveTo) {
+                this.selectMode = true;
+                this.bulkLocationVal = this.$el.dataset.moveTo;
+            }
             // Returning to a bare /browse re-applies the last filter set.
             // Falls through to the sort-only restore when there's nothing stored
             // (sessionStorage is per-tab, so a new tab always lands here).
@@ -387,7 +391,9 @@ function browsePage() {
                 if (el.value) params.set(name, el.value);
             });
             var qs = params.toString();
-            var url = window.location.pathname + (qs ? '?' + qs : '');
+            if (this.$el.dataset.moveTo) params.set('move_to', this.$el.dataset.moveTo);
+            var nextQuery = params.toString();
+            var url = window.location.pathname + (nextQuery ? '?' + nextQuery : '');
             history.replaceState(null, '', url);
             // Session-scoped so filters survive a trip to /series and back,
             // but not a new browser session. restoreFilters() replays this.

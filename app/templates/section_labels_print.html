@@ -13,8 +13,15 @@
 <body>
     <header class="print-controls">
         <h1>Section labels</h1>
-        <p>Choose the DYMO and matching {{ '%g'|format(width) }} × {{ '%g'|format(height) }} mm stock. Set scale to 100% and turn off headers and footers.</p>
-        <button type="button" data-print-page>Print labels</button>
+        {% if printer_paired %}
+        <form action="/labels/sections/jobs" method="post" class="dymo-print-form">
+            <input type="hidden" name="job_id" value="{{ job_id }}">
+            <input type="hidden" name="labels" value="{{ label_names | tojson | forceescape }}">
+            <button type="submit">Print on DYMO</button>
+        </form>
+        <p>{% if printer_online %}ww-node is online.{% else %}The job will queue until ww-node is online.{% endif %} Direct printing uses the label roll configured on ww-node.</p>
+        {% endif %}
+        <button type="button" data-print-page>Print locally</button>
         <a href="/labels/sections">New labels</a>
     </header>
     <main>
@@ -22,6 +29,7 @@
         <div class="section-label" style="font-size: {{ size|round(2) }}mm">{{ name }}</div>
         {% endfor %}
     </main>
+    <script src="/static/js/csrf.js"></script>
     <script src="/static/js/labels.js"></script>
 </body>
 </html>

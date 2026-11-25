@@ -104,6 +104,8 @@ async def browse(
         # `location_counts`, `reading_status_counts`, `owned_count`,
         # `wishlist_count` and `filtered_total` all come from here.
         counts = browse_counts.filter_counts(db, values, total_filtered)
+        move_to = request.query_params.get("move_to", "")
+        move_section = next((loc for loc in counts["locations"] if str(loc["id"]) == move_to), None)
 
         # Deliberately still global (design §5): none of these appears in
         # `fragments/filter_counts_oob.html`, so none can diverge.
@@ -151,6 +153,7 @@ async def browse(
         "seven_days_ago": (datetime.now(tz=None) - timedelta(days=7)).strftime("%Y-%m-%d"),
         "initial_query": values["q"],
         "author_filter_label": author_filter_label,
+        "move_section": move_section if request.state.user["role"] in ("admin", "editor") else None,
         "initial_filters": {name: values[name] for name in browse_filters.FILTER_NAMES},
     }
     # `render_oob_counts` is deliberately NOT set: `browse.html` includes
@@ -182,6 +185,7 @@ async def scan(
     from_: str = Query("", alias="from"),
     mode: str = "",
     code: str = "",
+    move_to: str = "",
     _=Depends(require_role("editor")),
 ):
     """The scan surface. `?add=manual` opens the manual entry panel (#120),
@@ -207,6 +211,9 @@ async def scan(
         locations = db.execute(
             "SELECT * FROM locations ORDER BY sort_order, name"
         ).fetchall()
+        seed_location = move_to if mode == "move" and any(str(loc["id"]) == move_to for loc in locations) else ""
+        if seed_location:
+            seed_mode = "move"
         game_platforms = get_game_platforms(db)
         borrowers = db.execute(
             "SELECT * FROM borrowers ORDER BY name"
@@ -233,7 +240,7 @@ async def scan(
          "locations": locations, "borrowers": borrowers,
          "manual_open": add == "manual", "manual_prefill": manual_prefill,
          "off_scan_modes": features.disabled_scan_modes(),
-         "seed_mode": seed_mode, "seed_code": seed_code,
+         "seed_mode": seed_mode, "seed_code": seed_code, "seed_location": seed_location,
          "status_label_sets": _status_label_sets()},
     )
 

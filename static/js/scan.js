@@ -193,6 +193,10 @@ function scanPage() {
                 this.mode = 'add';
                 try { localStorage.setItem('shelf_scan_mode', 'add'); } catch (err) { /* private mode */ }
             }
+            if (seedEl && seedEl.dataset.seedMode === 'move' && seedEl.dataset.seedLocation) {
+                this.mode = 'move';
+                this.location = seedEl.dataset.seedLocation;
+            }
             var codeEl = document.querySelector('[data-seed-code]');
             var seedCode = codeEl ? (codeEl.dataset.seedCode || '') : '';
             if (!this.modes.some(function(m) { return m.id === self.mode; })) {

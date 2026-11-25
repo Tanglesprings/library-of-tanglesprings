@@ -14,15 +14,15 @@ order the registry lint checks. The prefix is read with `copy_labels.prefix`
 """
 
 from urllib.parse import urlencode
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 
 from app.auth import require_role
-from app.database import get_db
+from app.database import get_db, get_setting
 from app.features import require_feature
 from app.routers import item_copies as copies_router
-from app.services import code128, copy_labels, item_copies
-from app.services.locations import location_tree
+from app.services import code128, copy_labels, item_copies, section_printing
 from app.services import locations as location_svc
 
 page_router = APIRouter()
@@ -65,11 +65,11 @@ async def labels_page(
 
 
 @page_router.get("/labels/sections")
-async def section_labels(request: Request, _=Depends(require_role("editor"))):
+async def section_labels(request: Request, location_id: int | None = None, _=Depends(require_role("editor"))):
     with get_db() as db:
-        locations = location_tree(db)
+        locations = location_svc.location_tree(db)
     return request.app.state.templates.TemplateResponse(
-        request, "section_labels.html", {"locations": locations},
+        request, "section_labels.html", {"locations": locations, "selected": [location_id]},
     )
 
 
@@ -83,11 +83,16 @@ async def section_labels_preview(
     _=Depends(require_role("editor")),
 ):
     with get_db() as db:
-        locations = location_tree(db)
+        locations = location_svc.location_tree(db)
+        printer_paired = bool(get_setting(db, section_printing.WORKER_DIGEST))
+        printer_online = bool(db.execute(
+            "SELECT 1 FROM settings WHERE key = ? AND value >= datetime('now', '-45 seconds')",
+            (section_printing.WORKER_SEEN,),
+        ).fetchone())
     selected = set(location_ids or ())
     names = [location["label"] for location in locations if location["id"] in selected]
     names.extend(line.strip() for line in section_names.splitlines() if line.strip())
-    if not names or len(names) > 300 or any(len(name) > 100 for name in names):
+    if not section_printing.valid_labels(names):
         return request.app.state.templates.TemplateResponse(
             request, "section_labels.html",
             {"locations": locations, "selected": selected, "section_names": section_names,
@@ -97,7 +102,9 @@ async def section_labels_preview(
         )
     labels = [(name, min(height * 0.36, (width - 6) / (max(7, len(name)) * 0.67))) for name in names]
     return request.app.state.templates.TemplateResponse(
-        request, "section_labels_print.html", {"labels": labels, "width": width, "height": height},
+        request, "section_labels_print.html",
+        {"labels": labels, "width": width, "height": height, "job_id": str(uuid4()),
+         "label_names": names, "printer_paired": printer_paired, "printer_online": printer_online},
     )
 
 

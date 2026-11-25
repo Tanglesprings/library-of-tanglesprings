@@ -1,0 +1,15 @@
+<div class="bg-shelf-card border border-shelf-border rounded-lg p-4 mb-4" role="status"
+     {% if job.display_status in ('queued', 'sending') %}hx-get="/labels/sections/jobs/{{ job.id }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+    <p class="font-bold">{{ count }} section {{ 'label' if count == 1 else 'labels' }}</p>
+    {% if job.display_status == 'submitted' %}
+    <p>Sent to the DYMO on ww-node. CUPS job {{ job.spool_id }}.</p>
+    {% elif job.display_status == 'failed' %}
+    <p>The DYMO job failed. Check the printer queue on ww-node before trying again.</p>
+    {% elif job.display_status == 'unconfirmed' %}
+    <p>ww-node claimed the job but delivery is unconfirmed. Check the printer queue before printing again.</p>
+    {% elif job.display_status == 'sending' %}
+    <p>ww-node is preparing the labels for the DYMO.</p>
+    {% else %}
+    <p>Queued for the DYMO. The labels will print when ww-node can reach the library.</p>
+    {% endif %}
+</div>

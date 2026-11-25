@@ -13,7 +13,11 @@ docker run -d --name tanglesprings-library-pilot \
 
 Open `https://localhost:18889/setup` and accept the local certificate for the pilot. Choose the **Everything** profile for individual copy labels, or enable **Collector tools** in Settings after setup. The initial setup creates Undercroft, Southern Annex, and Parlour. Register guests from **Settings → Library → Borrowers**. On **Scan**, select **Lend** or **Return**. Scan the copy label when more than one copy shares a retail code. Use **Add by hand** for board games and puzzles.
 
-Open **Settings → Library → Locations → Print section labels** to print room, shelf, or custom divider labels. The builder starts at 89 × 28 mm and accepts the dimensions printed on your stock. Print at actual size on the Mac with the DYMO queue or from a Mac that has added that shared printer.
+Open **Sections** from the Circulation Desk to rename a section, view its titles, or choose **Move titles here** and select a batch. **Scan into section** starts Move mode with that destination selected. Use a copy label when a title has multiple physical copies.
+
+Choose **Print label** beside a section or **Print section labels** to build a batch. **Print on DYMO** queues bold black divider labels for the LabelWriter 450 Turbo on ww-node using the roll configured on that Mac. **Print locally** opens the browser print dialog with adjustable paper dimensions.
+
+The library runs a second launch agent on ww-node using the existing Recovered Garments worker executable, a separate configuration directory, and a library-only pairing key. The library stores a SHA-256 digest of that key in `section_dymo_digest`. The Mac checks `/api/label-printer` over HTTPS and submits stock-sized PDFs to CUPS. A submitted job reports its CUPS ID. If delivery is unconfirmed, check the queue on ww-node before submitting a new job.
 
 ## Production host
 

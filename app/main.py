@@ -62,6 +62,7 @@ from app.services.browse_counts import source_label
 from app.database import init_db, get_db
 from app.routers import pages, items, item_copies, items_covers, cover_review, cover_review_actions, items_csv, items_catalog, locations, location_order, platforms, settings, sync, checkouts, valuation, hardcover, store, series, share, tags, intake, archive, shelf_fill, romm, komga, periodicals, music, related_media, trash, labels, audits, duplicates, upcoming, api_v1
 from app.routers import auth_routes
+from app.routers import section_printer
 # Aliased: `api_tokens` inside the middlewares is the service module.
 from app.routers import api_tokens as api_token_routes
 
@@ -99,7 +100,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-_SKIP_AUTH_PATHS = frozenset({"/login", "/setup", "/logout", "/health", "/api/health", "/source", "/sw.js"})
+_SKIP_AUTH_PATHS = frozenset({"/login", "/setup", "/logout", "/health", "/api/health", "/api/label-printer", "/source", "/sw.js"})
 _SKIP_AUTH_PREFIXES = ("/static/", "/covers/", "/share/")
 
 
@@ -897,6 +898,7 @@ app.include_router(trash.page_router)
 app.include_router(labels.router)
 app.include_router(labels.page_router)
 app.include_router(labels.item_router)
+app.include_router(section_printer.router)
 app.include_router(audits.router)
 app.include_router(audits.page_router)
 app.include_router(duplicates.router)

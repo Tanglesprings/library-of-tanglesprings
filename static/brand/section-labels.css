@@ -3,6 +3,7 @@ body { margin: 0; color: #19221e; background: #efe7d8; font: 16px system-ui, san
 .print-controls h1 { margin: 0; font: 700 1.8rem Georgia, serif; }
 .print-controls a { margin-left: 1rem; color: #722a36; }
 .print-controls button { border: 0; padding: 0.65rem 1rem; background: #722a36; color: white; font: inherit; cursor: pointer; }
+.dymo-print-form { margin-top: 1rem; }
 .section-label {
     box-sizing: border-box;
     display: flex;

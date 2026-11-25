@@ -7,6 +7,7 @@
 {% block content %}
 <div class="max-w-3xl mx-auto" x-data="scanPage" data-off-modes="{{ off_scan_modes }}"
      {% if seed_mode %}data-seed-mode="{{ seed_mode }}"{% endif %}{% if seed_code %} data-seed-code="{{ seed_code }}"{% endif %}
+     {% if seed_location %}data-seed-location="{{ seed_location }}"{% endif %}
      data-status-labels='{{ status_label_sets | tojson }}'>
 
     <!-- Mode Switcher -->

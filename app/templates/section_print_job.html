@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}DYMO print job · Library of Tanglesprings{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-2xl font-bold mb-4">DYMO print job</h1>
+    {% include "fragments/section_print_status.html" %}
+    <a href="/labels/sections" class="text-shelf-accent2 underline">Print more section labels</a>
+</div>
+{% endblock %}

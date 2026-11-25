@@ -412,9 +412,25 @@ MIGRATIONS: Sequence[tuple[int, str, str]] = (
     (10005, "Index active checkouts by physical copy",
      "CREATE UNIQUE INDEX IF NOT EXISTS idx_checkout_active_copy ON checkouts(copy_id) "
      "WHERE checked_in IS NULL AND copy_id IS NOT NULL"),
+    (10006, "Add section label print queue",
+     "CREATE TABLE IF NOT EXISTS section_label_jobs ("
+     " id TEXT PRIMARY KEY, requested_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+     " labels TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued'"
+     " CHECK(status IN ('queued', 'sending', 'submitted', 'failed')),"
+     " created_at TEXT NOT NULL DEFAULT (datetime('now')), claimed_at TEXT, spool_id TEXT)"),
 )
 
 MIGRATION_TABLES = """
+CREATE TABLE IF NOT EXISTS section_label_jobs (
+    id           TEXT PRIMARY KEY,
+    requested_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    labels       TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued', 'sending', 'submitted', 'failed')),
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    claimed_at   TEXT,
+    spool_id     TEXT
+);
+
 CREATE TABLE IF NOT EXISTS reading_log (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id       INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
